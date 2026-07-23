@@ -1,5 +1,5 @@
 import pytest
-from ghtp_null_agents.normalise_names import normalise_name
+from ghtp_null_agents.normalise_names import normalise_name, normalise_email
 
 
 class TestNormaliseName:
@@ -64,3 +64,9 @@ class TestNormaliseName:
     def test_idemptotence(self):
         once =normalise_name("Ophelia b,  Hinde")
         assert normalise_name(once) == once
+
+
+class TestNormalizeEmail:
+
+    def test_lowercases(self):
+        assert normalise_email("AVH@Informatik.Uni-Kiel.DE") == "avh@informatik.uni-kiel.de"

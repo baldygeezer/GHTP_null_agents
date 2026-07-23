@@ -10,3 +10,7 @@ def normalise_name(raw_name)->str:
     no_periods = stripped.replace(".", "")
     return re.sub(r"\s+", " ", no_periods).strip()
 
+
+def normalise_email(raw_email)->str:
+    return raw_email.lower()
+

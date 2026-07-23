@@ -4,5 +4,5 @@
 
 
 def normalise_name(raw_name)->str:
-    pass
+    return raw_name.lower()
 

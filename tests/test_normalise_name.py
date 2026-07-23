@@ -31,3 +31,36 @@ class TestNormaliseName:
     ])
     def test_fix_eszet(self, raw, expected):
         assert normalise_name(raw) == expected
+
+    @pytest.mark.parametrize("raw,expected", [
+        ("John W Smith", "john w smith"),
+        ("Karen j Harding", "karen j harding"),
+        ("Hugh J Nus", "hugh j nus"),
+    ])
+    def test_initials_not_stripped(self, raw, expected):
+        assert normalise_name(raw) == expected
+
+    @pytest.mark.parametrize("raw,expected", [
+        ("john w. smith", "john w smith"),
+        ("karen manning-fuller", "karen manning-fuller"),
+    ])
+    def test_periods_stripped(self, raw, expected):
+        assert normalise_name(raw) == expected
+
+
+    @pytest.mark.parametrize("raw,expected", [
+        ("  anita beaver  ", "anita beaver"),
+        (" drew  peacock", "drew peacock"),
+        ("ophelia\tplum", "ophelia plum"),
+        ("ophelia\t plum", "ophelia plum"),
+        ("ophelia \tplum", "ophelia plum"),
+        ("clemens\nkurz", "clemens kurz"),
+        ("clemens \nkurz", "clemens kurz"),
+        ("clemens\n kurz", "clemens kurz"),
+    ])
+    def test_fix_whitespace(self, raw, expected):
+        assert normalise_name(raw) == expected
+
+    def test_idemptotence(self):
+        once =normalise_name("Ophelia b,  Hinde")
+        assert normalise_name(once) == once

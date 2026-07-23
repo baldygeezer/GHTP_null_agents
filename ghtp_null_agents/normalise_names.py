@@ -1,8 +1,8 @@
 
-
-
+import unicodedata
 
 
 def normalise_name(raw_name)->str:
-    return raw_name.lower()
+    decomposed = unicodedata.normalize("NFKD", raw_name.lower())
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
 

@@ -24,3 +24,10 @@ class TestNormaliseName:
     def test_fixes_diacritics(self, raw, expected):
         assert normalise_name(raw) == expected
 
+    # uppercase as well!
+    @pytest.mark.parametrize("raw,expected", [
+        ("bjorn weißenfels","bjorn weissenfels"),
+        ("bjorn WEIẞENFELS", "bjorn weissenfels"),
+    ])
+    def test_fix_eszet(self, raw, expected):
+        assert normalise_name(raw) == expected

@@ -66,7 +66,14 @@ class TestNormaliseName:
         assert normalise_name(once) == once
 
 
-class TestNormalizeEmail:
+class TestNormaliseEmail:
 
     def test_lowercases(self):
         assert normalise_email("AVH@Informatik.Uni-Kiel.DE") == "avh@informatik.uni-kiel.de"
+
+    def test_strips_surrounding_whitespace(self):
+        assert normalise_email("  avh@x.de  ") == "avh@x.de"
+
+    @pytest.mark.parametrize("falsy", ["", None])
+    def test_empty_input_returns_empty_string(self, falsy):
+        assert normalise_email(falsy) == ""

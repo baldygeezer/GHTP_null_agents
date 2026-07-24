@@ -74,6 +74,9 @@ class TestNormaliseEmail:
     def test_strips_surrounding_whitespace(self):
         assert normalise_email("  avh@x.de  ") == "avh@x.de"
 
-    @pytest.mark.parametrize("falsy", ["", None])
-    def test_empty_input_returns_empty_string(self, falsy):
-        assert normalise_email(falsy) == ""
+
+
+    @pytest.mark.parametrize("blank", ["", None," "])
+    def test_empty_input_returns_empty_string(self, blank):
+        assert normalise_email(blank) == ""
+

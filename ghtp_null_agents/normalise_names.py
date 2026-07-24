@@ -12,5 +12,15 @@ def normalise_name(raw_name)->str:
 
 
 def normalise_email(raw_email)->str:
-    return raw_email.lower()
+    if not raw_email:
+        return ""
+    return raw_email.strip().lower()
 
+def test_is_idempotent(self):
+    once = normalise_email("  AVH@X.DE ")
+    assert normalise_email(once) == once
+
+def test_leaves_diacritics(self):
+    '''we don't want to strip these as messing with ascii here
+    could merge emails that are genuinely different'''
+    assert normalise_email('doüghǎl@mágic.ròundabout.ac.uk')=='doüghǎl@mágic.ròundabout.ac.uk'

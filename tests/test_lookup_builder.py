@@ -29,3 +29,7 @@ class TestExtractLogin:
     def test_bot_is_skipped(self,login):
         # Mapping a human name onto a bot login would poison the lookup.
         assert extract_login(login) is None
+
+    def test_preserves_login_case(self):
+        # github2prov treats logins as case-sensitive.
+        assert extract_login(user_json("ChristianWulf")) == "ChristianWulf"

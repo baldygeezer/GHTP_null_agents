@@ -121,3 +121,19 @@ class TestMintIDFromName:
     def test_returns_empty_string(self, raw, expected):
         assert mint_id_from_name(raw) == expected
 
+    @pytest.mark.parametrize("raw,expected", [
+       ("möbius", "mobius"),
+        ("MÖBIUS", "mobius"),
+        ("mébius", "mebius"),
+        ("MÉBIUS", "mebius"),
+        ])
+    def test_no_diacritics(self, raw, expected):
+        assert mint_id_from_name(raw) == expected
+
+    @pytest.mark.parametrize("raw,expected", [
+        ("eßler", "essler"),
+        ("Eẞler", "essler"),
+
+    ])
+    def test_no_eszet(self, raw, expected):
+        assert mint_id_from_name(raw) == expected

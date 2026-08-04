@@ -16,11 +16,20 @@ def normalise_email(raw_email)->str:
         return ""
     return raw_email.strip().lower()
 
-def test_is_idempotent(self):
-    once = normalise_email("  AVH@X.DE ")
-    assert normalise_email(once) == once
+def mint_id_from_slug(raw_slug)->str:
+    """derive a unique (-ish) id from a github slug, eg a username. punctuation, spaces, numbers and
+    diacritics are all stripped and the string is lowercased.
+    a string with no usable chars returns an empty string.
+    """
+    normalised = normalise_name(raw_slug)
+    return re.sub(r"[^a-z]", "", normalised)
 
-def test_leaves_diacritics(self):
-    '''we don't want to strip these as messing with ascii here
-    could merge emails that are genuinely different'''
-    assert normalise_email('doüghǎl@mágic.ròundabout.ac.uk')=='doüghǎl@mágic.ròundabout.ac.uk'
+
+def mint_id_from_name(raw_name)->str:
+    """derive a unique (-ish) id from a name for agents we can't find on github. punctuation, spaces, numbers and
+    diacritics are all stripped and the string is lowercased, eg:
+      '"Oscar.Martinez.Rubi"',  'Oscar Martinez Rubi' 'Oscar Martiñéz Rubi' are all changed to 'oscarmartinezrubi'
+      a string with no usable cars returns §§§§§§an emoty string, eg 1234.3 and 78:0:03 09.8 will all change to ""
+      """
+    normalised = normalise_name(raw_name)
+    return re.sub(r"[^a-z]", "", normalised)

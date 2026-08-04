@@ -1,5 +1,5 @@
 import pytest
-from ghtp_null_agents.normalise_names import normalise_name, normalise_email
+from ghtp_null_agents.normalise_names import normalise_name, normalise_email, mint_id_from_slug, mint_id_from_name
 
 
 class TestNormaliseName:
@@ -81,4 +81,28 @@ class TestNormaliseEmail:
     def test_is_idempotent(self):
         once = normalise_email("  AVH@X.DE ")
         assert normalise_email(once) == once
+
+    def test_leaves_diacritics(self):
+        '''we don't want to strip these as messing with ascii here
+        could merge emails that are genuinely different'''
+        assert normalise_email('doüghǎl@mágic.ròundabout.ac.uk')=='doüghǎl@mágic.ròundabout.ac.uk'
+
+class TestMintIDFromName:
+
+    @pytest.mark.parametrize("raw,expected", [
+        ("nina marwede", "ninamarwede"),
+        ("nina   marwede", "ninamarwede"),
+        ("  nina   marwede  ", "ninamarwede"),])
+    def test_strip_spaces(self, raw, expected):
+        assert mint_id_from_name(raw) == expected
+
+
+    @pytest.mark.parametrize("raw,expected", [
+        ("Nina Marwede", "ninamarwede"),
+        ("Helen Smith", "helensmith"),
+        ("MicHaElDaviEs", "michaeldavies"), ])
+    def test_id_is_lowercase(self, raw, expected):
+        assert mint_id_from_name(raw) == expected
+
+
 

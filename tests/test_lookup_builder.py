@@ -1,5 +1,5 @@
-from ghtp_null_agents.lookup_builder import extract_login, LookupBuilder
-from tests.fixtures import user_json
+from ghtp_null_agents.lookup_builder import extract_login, LookupBuilder, process_commits
+from tests.fixtures import user_json, commit, person
 
 import pytest
 
@@ -141,3 +141,17 @@ class TestLookupBuilder:
         assert b.by_name == {"andre van hoorn": "avanhoorn"}
 
 
+class TestProcessCommits:
+
+    def test_harvests_resolved_author_and_committer(self):
+        b = LookupBuilder()
+        commits = [commit("u1", person("Andre van Hoorn", "avh@x.de", user_json("avanhoorn")))]
+        n_author, n_committer = process_commits(commits, b)
+        assert (n_author, n_committer) == (1, 1)
+        assert b.by_name["andre van hoorn"] == "avanhoorn"
+
+    def test_skips_null_users(self):
+        b = LookupBuilder()
+        commits = [commit("u1", person("Orphan Person", "o@x.de", None))]
+        assert process_commits(commits, b) == (0, 0)
+        assert b.by_name == {}

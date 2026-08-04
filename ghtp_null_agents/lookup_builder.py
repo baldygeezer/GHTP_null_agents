@@ -48,3 +48,20 @@ class LookupBuilder:
             if len(set(logins)) > 1
         ]
         return name_conflicts + email_conflicts
+
+
+def process_commits(commits, builder):
+    n_author = 0
+    n_committer = 0
+    for commit in commits:
+        for role in ("author", "committer"):
+            actor = commit["commit"][role]
+            login = extract_login(actor.get("user"))
+            if not login:
+                continue
+            builder.add(actor.get("name"), actor.get("email"), login, commit["url"], role)
+            if role == "author":
+                n_author += 1
+            else:
+                n_committer += 1
+    return n_author, n_committer

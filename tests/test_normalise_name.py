@@ -115,4 +115,9 @@ class TestMintIDFromName:
     def test_id_is_alphanum(self, raw, expected):
         assert mint_id_from_name(raw) == expected
 
+    @pytest.mark.parametrize("raw,expected", [
+       ("&£- /%", "")
+        ])
+    def test_returns_empty_string(self, raw, expected):
+        assert mint_id_from_name(raw) == expected
 

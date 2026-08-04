@@ -3,7 +3,7 @@ from tests.fixtures import user_json
 
 import pytest
 
-
+import inspect
 
 
 class TestExtractLogin:
@@ -37,7 +37,7 @@ class TestExtractLogin:
 class TestLookupBuilder:
     def test_records_name_and_email(self):
         b = LookupBuilder()
-        b.add("André van Hoorn", "AVH@X.de", "avanhoorn")
+        b.add("André van Hoorn", "AVH@X.de", "avanhoorn", "commit_id", "author")
         assert b.by_name == {"andre van hoorn": "avanhoorn"}
         assert b.by_email == {"avh@x.de": "avanhoorn"}
 
@@ -45,39 +45,39 @@ class TestLookupBuilder:
         # ... because now we are matching - we don't want case in emails to break a match, and github2prov treats github
         # user slugs as case-sensitive
         b = LookupBuilder()
-        b.add("christian wulf", "cw@x.de", "ChristianWulf",)
+        b.add("christian wulf", "cw@x.de", "ChristianWulf", "commit_id", "author")
         assert b.by_name["christian wulf"] == "ChristianWulf"
 
     def test_missing_name_still_records_email(self):
         b = LookupBuilder()
-        b.add(None, "only@email.de", "someone")
+        b.add(None, "only@email.de", "someone", "commit_id", "author")
         assert b.by_name == {}
         assert b.by_email == {"only@email.de": "someone"}
 
     def test_missing_email_still_records_name(self):
         b = LookupBuilder()
-        b.add("Only Name", None, "someone")
+        b.add("Only Name", None, "someone", "commit_id", "author")
         assert b.by_name == {"only name": "someone"}
         assert b.by_email == {}
 
     def test_blank_name_is_not_recorded_as_empty_key(self):
         b = LookupBuilder()
-        b.add("   ", "x@y.de", "someone")
+        b.add("   ", "x@y.de", "someone", "commit_id", "author")
         assert "" not in b.by_name
 
     def test_first_seen_login_wins_in_the_table(self):
         b = LookupBuilder()
-        b.add("Ambiguous Name", None, "first-login",)
-        b.add("Ambiguous Name", None, "second-login")
-        b.add("brian", None, "another_login")
-        b.add("Ambiguous Name", None, "third-login")
+        b.add("Ambiguous Name", None, "first-login", "commit_id", "author")
+        b.add("Ambiguous Name", None, "second-login", "commit_id", "author")
+        b.add("brian", None, "another_login", "commit_id", "author")
+        b.add("Ambiguous Name", None, "third-login", "commit_id", "author")
         assert b.by_name["ambiguous name"] == "first-login"
         assert b.by_name["brian"] == "another_login"
 
     def test_conflicting_name_is_reported(self):
         b = LookupBuilder()
-        b.add("Ambiguous Name", None, "first-login")
-        b.add("Ambiguous Name", None, "second-login")
+        b.add("Ambiguous Name", None, "first-login", "commit_id", "author")
+        b.add("Ambiguous Name", None, "second-login", "commit_id", "committer")
 
         conflicts = b.conflicts()
         assert len(conflicts) == 1
@@ -88,8 +88,8 @@ class TestLookupBuilder:
 
     def test_conflicting_email_is_reported(self):
         b = LookupBuilder()
-        b.add(None, "shared@x.de", "login-one")
-        b.add(None, "SHARED@X.de", "login-two")
+        b.add(None, "shared@x.de", "login-one", "commit_id", "author")
+        b.add(None, "SHARED@X.de", "login-two", "commit_id", "committer")
 
         conflicts = b.conflicts()
         assert len(conflicts) == 1
@@ -99,7 +99,45 @@ class TestLookupBuilder:
     def test_two_names_sharing_one_login_is_not_a_conflict(self):
         # normal: one person commits under several spellings.
         b = LookupBuilder()
-        b.add("Nils Ehmke", None, "nils-christian")
-        b.add("Nils Christian Ehmke", None, "nils-christian")
+        b.add("Nils Ehmke", None, "nils-christian", "commit_id", "author")
+        b.add("Nils Christian Ehmke", None, "nils-christian", "commit_id", "author")
         assert b.conflicts() == []
         assert len(b.by_name) == 2
+
+
+    def test_conflict_carries_full_info(self):
+        # we need the commit url, role + raw spelling to resolve these by hand.
+        b = LookupBuilder()
+        b.add("Ambiguous Name", None, "first-login", "commit-a", "author")
+        b.add("ambiguous  name", None, "second-login", "commit-b", "committer")
+
+        occs = b.conflicts()[0]["occurrences"]
+        assert {o["commit_url"] for o in occs} == {"commit-a", "commit-b"}
+        assert {o["role"] for o in occs} == {"author", "committer"}
+        assert {o["raw_value"] for o in occs} == {"Ambiguous Name", "ambiguous  name"}
+
+    def test_add_has_no_optional_params(self):
+        signature = inspect.signature(LookupBuilder.add)
+        for name, param in signature.parameters.items():
+            # fail if any parameter has default value
+            assert param.default is inspect.Parameter.empty, (
+                f"Parameter '{name}' is optional because it has a default value: {param.default}"
+            )
+            # fail if it accepts variable positional arguments (*args)
+            assert param.kind is not inspect.Parameter.VAR_POSITIONAL, (
+                f"Parameter '{name}' (*args) makes arguments optional."
+            )
+
+            # fail if it accepts variable keyword arguments (**kwargs)
+            assert param.kind is not inspect.Parameter.VAR_KEYWORD, (
+                f"Parameter '{name}' (**kwargs) makes arguments optional."
+            )
+
+    def test_repeated_consistent_mapping_is_not_a_conflict(self):
+        b = LookupBuilder()
+        b.add("Andre van Hoorn", "avh@x.de", "avanhoorn", "u1", "author")
+        b.add("André van Hoorn", "AVH@X.de", "avanhoorn", "u2", "committer")
+        assert b.conflicts() == []
+        assert b.by_name == {"andre van hoorn": "avanhoorn"}
+
+

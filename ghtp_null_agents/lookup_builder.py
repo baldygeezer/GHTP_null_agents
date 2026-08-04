@@ -16,12 +16,16 @@ class LookupBuilder:
         self.by_email = {}
         self._name_logins_seen = {}
         self._email_logins_seen = {}
+        self._name_occurrences = {}
 
-    def add(self, name, email, login):
+    def add(self, name, email, login, commit_url, role):
         if name and normalise_name(name):
             key = normalise_name(name)
             self.by_name.setdefault(key, login)
             self._name_logins_seen.setdefault(key, []).append(login)
+            self._name_occurrences.setdefault(key, []).append(
+                {"commit_url": commit_url, "role": role, "raw_value": name}
+            )
         if email:
             key = normalise_email(email)
             self.by_email[key] = login
@@ -29,13 +33,18 @@ class LookupBuilder:
 
     def conflicts(self):
         name_conflicts = [
-            {"field": "name", "normalized_key": key, "logins_seen": logins}
+            {
+                "field": "name",
+                "normalized_key": key,
+                "logins_seen": logins,
+                "occurrences": self._name_occurrences[key],
+            }
             for key, logins in self._name_logins_seen.items()
-            if len(logins) > 1
+            if len(set(logins)) > 1
         ]
         email_conflicts = [
             {"field": "email", "normalized_key": key, "logins_seen": logins}
             for key, logins in self._email_logins_seen.items()
-            if len(logins) > 1
+            if len(set(logins)) > 1
         ]
         return name_conflicts + email_conflicts

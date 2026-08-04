@@ -10,3 +10,16 @@ class TestExtractLogin:
 
     def test_graphql_user_object(self):
         assert extract_login(user_json("avanhoorn")) == "avanhoorn"
+
+    @pytest.mark.parametrize("login",[
+        ("avanhoorn"),
+        ("baldygeezer"),])
+    def test_plain_login_string_is_rejected(self, login):
+        # we should see logins being checked. If we do something is wrong and we don't want to be assigning a login to
+        # anything so it should return none
+        assert extract_login(login) is None
+
+
+    @pytest.mark.parametrize("falsy", [None, {}, "", False])
+    def test_unresolved_returns_none(self, falsy):
+        assert extract_login(falsy) is None

@@ -32,4 +32,4 @@ def mint_id_from_name(raw_name)->str:
       a string with no usable cars returns §§§§§§an emoty string, eg 1234.3 and 78:0:03 09.8 will all change to ""
       """
     normalised = normalise_name(raw_name)
-    return re.sub(r"[^a-z]", "", normalised)
+    return re.sub(r"[^a-z0-9]", "", normalised)

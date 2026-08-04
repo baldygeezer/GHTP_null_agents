@@ -104,5 +104,15 @@ class TestMintIDFromName:
     def test_id_is_lowercase(self, raw, expected):
         assert mint_id_from_name(raw) == expected
 
+    @pytest.mark.parametrize("raw,expected", [
+        ("nina.marwede", "ninamarwede"),
+        ("helen:smith", "helensmith"),
+        ("michael/davies", "michaeldavies"),
+        ("michael-davies23", "michaeldavies23"),
+        ("michael~davies.23", "michaeldavies23"),
+        ("michaeldavies23", "michaeldavies23"),
+    ])
+    def test_id_is_alphanum(self, raw, expected):
+        assert mint_id_from_name(raw) == expected
 
 

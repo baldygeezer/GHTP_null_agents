@@ -137,3 +137,7 @@ class TestMintIDFromName:
     ])
     def test_no_eszet(self, raw, expected):
         assert mint_id_from_name(raw) == expected
+
+    def test_is_idempotent(self):
+        once = mint_id_from_name("  AVH@X.DE ")
+        assert mint_id_from_name(once) == once

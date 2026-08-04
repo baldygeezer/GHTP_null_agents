@@ -23,3 +23,9 @@ class TestExtractLogin:
     @pytest.mark.parametrize("falsy", [None, {}, "", False])
     def test_unresolved_returns_none(self, falsy):
         assert extract_login(falsy) is None
+
+    @pytest.mark.parametrize("login",[user_json("dependabot", typename="Bot"),
+                                      user_json("myclevercithing", typename="Bot")])
+    def test_bot_is_skipped(self,login):
+        # Mapping a human name onto a bot login would poison the lookup.
+        assert extract_login(login) is None

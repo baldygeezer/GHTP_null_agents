@@ -155,3 +155,36 @@ class TestProcessCommits:
         commits = [commit("u1", person("Orphan Person", "o@x.de", None))]
         assert process_commits(commits, b) == (0, 0)
         assert b.by_name == {}
+
+    def test_skips_commits_with_no_user_key_at_all(self):
+        # ...in repos that never went through the resolution step.
+        b = LookupBuilder()
+        commits = [commit("u1", person("Someone", "s@x.de"), omit_user_key=True)]
+        assert process_commits(commits, b) == (0, 0)
+
+
+
+
+
+
+    c1=[commit("u1",author=person("Author McAuthorface", "a@x.de", user_json("authorface")),
+                    committer=person("Committer McCommitterface", "c@x.de", None),
+        )]
+    c2=[commit("u1",author=person("Author McAuthorface", "a@x.de", user_json("authorface")),
+                    committer=person("Committer McCommitterface", "c@x.de", user_json("committerface")),
+        )]
+    c3=[commit("u1",author=person("Author McAuthorface", "a@x.de", user_json("authorface")),
+                    committer=person("Committer McCommitterface", "c@x.de", user_json("committerface")),
+        ),
+        commit("u2", author=person("Author McAuthorface", "a@x.de", user_json("authorface")),
+               committer=person("Committer McCommitterface", "c@x.de", None),
+               )
+        ]
+
+    @pytest.mark.parametrize("commits, expected",[(c1,(1,0)),
+                                                   (c2, (1, 1)),
+                                                   (c3, (2, 1))
+                                                  ])
+    def test_counts_author_and_committer_independently(self, commits, expected):
+        b = LookupBuilder()
+        assert process_commits(commits, b) == expected

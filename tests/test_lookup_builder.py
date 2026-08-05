@@ -1,9 +1,14 @@
 import inspect
+import json
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
 from ghtp_null_agents.lookup_builder import extract_login, LookupBuilder, process_commits
 from tests.fixtures import user_json, commit, person
+
 
 
 class TestExtractLogin:
@@ -190,3 +195,19 @@ class TestProcessCommits:
     def test_handles_null_author_block(self):
         b = LookupBuilder()
         assert process_commits([{"url": "u1", "commit": {"author": None, "committer": None}}], b) == (0, 0)
+
+SCRIPT = Path(__file__).resolve().parent.parent / "build_user_lookup.py"
+
+class TestBuilderCli:
+
+    def _run(self, tmp_path, commits):
+        commits_path = tmp_path / "commits.json"
+        commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
+        lookup_path = tmp_path / "lookup.json"
+
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), str(commits_path), str(lookup_path)],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 0, proc.stderr
+        return proc, lookup_path, tmp_path / "lookup_conflicts.json"

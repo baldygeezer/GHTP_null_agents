@@ -55,7 +55,9 @@ def process_commits(commits, builder):
     n_committer = 0
     for commit in commits:
         for role in ("author", "committer"):
-            actor = commit["commit"][role]
+            actor = commit.get("commit", {}).get(role)
+            if actor is None:
+                continue
             login = extract_login(actor.get("user"))
             if not login:
                 continue

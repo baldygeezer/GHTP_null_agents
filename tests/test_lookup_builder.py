@@ -188,3 +188,10 @@ class TestProcessCommits:
     def test_counts_author_and_committer_independently(self, commits, expected):
         b = LookupBuilder()
         assert process_commits(commits, b) == expected
+
+    def test_handle_missing_commit_block(self):
+        b = LookupBuilder()
+        assert process_commits([{"url": "u1"}], b) == (0, 0)
+
+
+

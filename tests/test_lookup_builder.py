@@ -1,9 +1,9 @@
-from ghtp_null_agents.lookup_builder import extract_login, LookupBuilder, process_commits
-from tests.fixtures import user_json, commit, person
+import inspect
 
 import pytest
 
-import inspect
+from ghtp_null_agents.lookup_builder import extract_login, LookupBuilder, process_commits
+from tests.fixtures import user_json, commit, person
 
 
 class TestExtractLogin:
@@ -11,28 +11,28 @@ class TestExtractLogin:
     def test_graphql_user_object(self):
         assert extract_login(user_json("avanhoorn")) == "avanhoorn"
 
-    @pytest.mark.parametrize("login",[
+    @pytest.mark.parametrize("login", [
         ("avanhoorn"),
-        ("baldygeezer"),])
+        ("baldygeezer"), ])
     def test_plain_login_string_is_rejected(self, login):
         # we should see logins being checked. If we do something is wrong, and we don't want to be assigning a login to
         # anything so it should return none
         assert extract_login(login) is None
 
-
     @pytest.mark.parametrize("falsy", [None, {}, "", False])
     def test_unresolved_returns_none(self, falsy):
         assert extract_login(falsy) is None
 
-    @pytest.mark.parametrize("login",[user_json("dependabot", typename="Bot"),
-                                      user_json("myclevercithing", typename="Bot")])
-    def test_bot_is_skipped(self,login):
+    @pytest.mark.parametrize("login", [user_json("dependabot", typename="Bot"),
+                                       user_json("myclevercithing", typename="Bot")])
+    def test_bot_is_skipped(self, login):
         # Mapping a human name onto a bot login would poison the lookup.
         assert extract_login(login) is None
 
     def test_preserves_login_case(self):
         # github2prov treats logins as case-sensitive.
         assert extract_login(user_json("ChristianWulf")) == "ChristianWulf"
+
 
 class TestLookupBuilder:
     def test_records_name_and_email(self):
@@ -104,7 +104,6 @@ class TestLookupBuilder:
         assert b.conflicts() == []
         assert len(b.by_name) == 2
 
-
     def test_conflict_carries_full_info(self):
         # we need the commit url, role + raw spelling to resolve these by hand.
         b = LookupBuilder()
@@ -162,29 +161,24 @@ class TestProcessCommits:
         commits = [commit("u1", person("Someone", "s@x.de"), omit_user_key=True)]
         assert process_commits(commits, b) == (0, 0)
 
+    c1 = [commit("u1", author=person("Author McAuthorface", "a@x.de", user_json("authorface")),
+                 committer=person("Committer McCommitterface", "c@x.de", None),
+                 )]
+    c2 = [commit("u1", author=person("Author McAuthorface", "a@x.de", user_json("authorface")),
+                 committer=person("Committer McCommitterface", "c@x.de", user_json("committerface")),
+                 )]
+    c3 = [commit("u1", author=person("Author McAuthorface", "a@x.de", user_json("authorface")),
+                 committer=person("Committer McCommitterface", "c@x.de", user_json("committerface")),
+                 ),
+          commit("u2", author=person("Author McAuthorface", "a@x.de", user_json("authorface")),
+                 committer=person("Committer McCommitterface", "c@x.de", None),
+                 )
+          ]
 
-
-
-
-
-    c1=[commit("u1",author=person("Author McAuthorface", "a@x.de", user_json("authorface")),
-                    committer=person("Committer McCommitterface", "c@x.de", None),
-        )]
-    c2=[commit("u1",author=person("Author McAuthorface", "a@x.de", user_json("authorface")),
-                    committer=person("Committer McCommitterface", "c@x.de", user_json("committerface")),
-        )]
-    c3=[commit("u1",author=person("Author McAuthorface", "a@x.de", user_json("authorface")),
-                    committer=person("Committer McCommitterface", "c@x.de", user_json("committerface")),
-        ),
-        commit("u2", author=person("Author McAuthorface", "a@x.de", user_json("authorface")),
-               committer=person("Committer McCommitterface", "c@x.de", None),
-               )
-        ]
-
-    @pytest.mark.parametrize("commits, expected",[(c1,(1,0)),
+    @pytest.mark.parametrize("commits, expected", [(c1, (1, 0)),
                                                    (c2, (1, 1)),
                                                    (c3, (2, 1))
-                                                  ])
+                                                   ])
     def test_counts_author_and_committer_independently(self, commits, expected):
         b = LookupBuilder()
         assert process_commits(commits, b) == expected
@@ -192,7 +186,6 @@ class TestProcessCommits:
     def test_handle_missing_commit_block(self):
         b = LookupBuilder()
         assert process_commits([{"url": "u1"}], b) == (0, 0)
-
 
     def test_handles_null_author_block(self):
         b = LookupBuilder()

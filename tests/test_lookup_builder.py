@@ -194,4 +194,6 @@ class TestProcessCommits:
         assert process_commits([{"url": "u1"}], b) == (0, 0)
 
 
-
+    def test_handles_null_author_block(self):
+        b = LookupBuilder()
+        assert process_commits([{"url": "u1", "commit": {"author": None, "committer": None}}], b) == (0, 0)

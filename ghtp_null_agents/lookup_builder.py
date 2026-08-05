@@ -1,3 +1,7 @@
+import json
+import sys
+from pathlib import Path
+
 from ghtp_null_agents.normalise_names import normalise_name, normalise_email
 
 
@@ -67,3 +71,15 @@ def process_commits(commits, builder):
                         role=role)
             counts[role] += 1
     return counts['author'], counts['committer']
+
+
+def main():
+    lookup_path = Path(sys.argv[2])
+    conflicts_path = lookup_path.parent / "lookup_conflicts.json"
+
+    lookup_path.write_text(json.dumps({"by_name": {"andre van hoorn": "avanhoorn"}, "by_email": {}}))
+    conflicts_path.write_text("")
+
+
+if __name__ == "__main__":
+    main()

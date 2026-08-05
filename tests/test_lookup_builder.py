@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from ghtp_null_agents.lookup_builder import extract_login, LookupBuilder, process_commits
-from tests.fixtures import user_json, commit, person
+from tests.fixtures import user_json, commit, person, kieker_commits
 
 
 
@@ -196,8 +196,9 @@ class TestProcessCommits:
         b = LookupBuilder()
         assert process_commits([{"url": "u1", "commit": {"author": None, "committer": None}}], b) == (0, 0)
 
-SCRIPT = Path(__file__).resolve().parent.parent / "build_user_lookup.py"
+SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "lookup_builder.py"
 
+@pytest.mark.usefixtures("kieker_commits")
 class TestBuilderCli:
 
     def _run(self, tmp_path, commits):
@@ -211,3 +212,21 @@ class TestBuilderCli:
         )
         assert proc.returncode == 0, proc.stderr
         return proc, lookup_path, tmp_path / "lookup_conflicts.json"
+
+    def test_writes_lookup_file(self, tmp_path, kieker_commits):
+        proc, lookup_path, conflicts_path = self._run(tmp_path, kieker_commits)
+        assert lookup_path.exists()
+
+    def test_writes_conflicts_file(self, tmp_path, kieker_commits):
+        proc, lookup_path, conflicts_path = self._run(tmp_path, kieker_commits)
+        assert conflicts_path.exists()
+
+    def test_lookup_keys(self, tmp_path, kieker_commits):
+        proc, lookup_path, conflicts_path = self._run(tmp_path, kieker_commits)
+        lookup = json.loads(lookup_path.read_text(encoding="utf-8"))
+        assert set(lookup) == {"by_name", "by_email"}
+
+    def test_looks_up_by_name(self, tmp_path, kieker_commits):
+        proc, lookup_path, conflicts_path = self._run(tmp_path, kieker_commits)
+        lookup = json.loads(lookup_path.read_text(encoding="utf-8"))
+        assert lookup["by_name"]["andre van hoorn"] == "avanhoorn"

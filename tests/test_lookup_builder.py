@@ -230,3 +230,68 @@ class TestBuilderCli:
         proc, lookup_path, conflicts_path = self._run(tmp_path, kieker_commits)
         lookup = json.loads(lookup_path.read_text(encoding="utf-8"))
         assert lookup["by_name"]["andre van hoorn"] == "avanhoorn"
+
+    def test_looks_up_by_email(self, tmp_path, kieker_commits):
+        proc, lookup_path, conflicts_path = self._run(tmp_path, kieker_commits)
+        lookup = json.loads(lookup_path.read_text(encoding="utf-8"))
+        assert lookup["by_email"]["nie@informatik.uni-kiel.de"] == "nils-christian"
+
+    def test_clean_run_reports_no_conflicts(self, tmp_path, kieker_commits):
+        proc, _, conflicts_path = self._run(tmp_path, kieker_commits)
+        assert "No conflicts found." in proc.stdout
+        assert json.loads(conflicts_path.read_text(encoding="utf-8")) == []
+
+
+    def test_conflicts_are_reported_on_disc(self, tmp_path):
+        commits = [
+            commit("u1", person("Ambiguous Name", "amb@x.de", user_json("login-one"))),
+            commit("u2", person("Ambiguous Name", "amb@x.de", user_json("login-two"))),
+        ]
+        proc, _, conflicts_path = self._run(tmp_path, commits)
+
+        conflicts = json.loads(conflicts_path.read_text(encoding="utf-8"))
+        assert len(conflicts) == 2  # one for the name, one for the email
+
+    def test_conflicts_are_reported_on_stdout(self, tmp_path):
+        commits = [
+            commit("u1", person("Ambiguous Name", "amb@x.de", user_json("login-one"))),
+            commit("u2", person("Ambiguous Name", "amb@x.de", user_json("login-two"))),
+        ]
+        proc, _, conflicts_path = self._run(tmp_path, commits)
+        assert "conflict" in proc.stdout.lower()
+
+    def test_conflicts_flag(self, tmp_path, kieker_commits):
+        commits_path = tmp_path / "commits.json"
+        commits_path.write_text(json.dumps(kieker_commits, ensure_ascii=False), encoding="utf-8")
+        custom = tmp_path / "my_conflicts.json"
+
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), str(commits_path),
+             str(tmp_path / "lookup.json"), "--conflicts", str(custom)],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 0, proc.stderr
+        assert custom.exists()
+
+    def test_conflicts_location_flag(self, tmp_path, kieker_commits):
+        commits_path = tmp_path / "commits.json"
+        commits_path.write_text(json.dumps(kieker_commits, ensure_ascii=False), encoding="utf-8")
+        custom = tmp_path / "my_conflicts.json"
+
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), str(commits_path),
+             str(tmp_path / "lookup.json"), "--conflicts", str(custom)],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 0, proc.stderr
+        assert custom.exists()
+
+    def test_output_json_is_utf8_not_escaped(self, tmp_path):
+        # ensure_ascii=False keeps the report readable when you open it to
+        # resolve names by hand.
+        commits = [
+            commit("u1", person("Jürgen Walter", "jw@x.de", user_json("login-one"))),
+            commit("u2", person("Jürgen Walter", "jw@x.de", user_json("login-two"))),
+        ]
+        _, _, conflicts_path = self._run(tmp_path, commits)
+        assert "Jürgen" in conflicts_path.read_text(encoding="utf-8")

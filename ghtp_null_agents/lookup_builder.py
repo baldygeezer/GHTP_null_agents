@@ -74,11 +74,27 @@ def process_commits(commits, builder):
 
 
 def main():
+    commits_path = Path(sys.argv[1])
     lookup_path = Path(sys.argv[2])
-    conflicts_path = lookup_path.parent / "lookup_conflicts.json"
+    if "--conflicts" in sys.argv:
+        conflicts_path = Path(sys.argv[sys.argv.index("--conflicts") + 1])
+    else:
+        conflicts_path = lookup_path.parent / "lookup_conflicts.json"
 
-    lookup_path.write_text(json.dumps({"by_name": {"andre van hoorn": "avanhoorn"}, "by_email": {}}))
-    conflicts_path.write_text("")
+    commits = json.loads(commits_path.read_text(encoding="utf-8"))
+    builder = LookupBuilder()
+    process_commits(commits, builder)
+
+    lookup_path.write_text(
+        json.dumps({"by_name": builder.by_name, "by_email": builder.by_email}, ensure_ascii=False)
+    )
+
+    conflicts = builder.conflicts()
+    conflicts_path.write_text(json.dumps(conflicts, ensure_ascii=False))
+    if not conflicts:
+        print("No conflicts found.")
+    else:
+        print(f"{len(conflicts)} conflicts found.")
 
 
 if __name__ == "__main__":

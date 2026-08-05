@@ -1,7 +1,6 @@
 from ghtp_null_agents.normalise_names import normalise_name, normalise_email
 
 
-
 def extract_login(usr: dict):
     if not isinstance(usr, dict):
         return None
@@ -51,7 +50,7 @@ class LookupBuilder:
 
 
 def process_commits(commits, builder):
-    counts ={"author": 0, "committer": 0}
+    counts = {"author": 0, "committer": 0}
 
     for commit in commits:
         for role in counts:
@@ -61,10 +60,10 @@ def process_commits(commits, builder):
             login = extract_login(actor.get("user"))
             if not login:
                 continue
-            builder.add(name = actor.get("name"),
-                        email = actor.get("email"),
-                        login = login,
-                        commit_url = commit["url"],
+            builder.add(name=actor.get("name"),
+                        email=actor.get("email"),
+                        login=login,
+                        commit_url=commit["url"],
                         role=role)
             counts[role] += 1
     return counts['author'], counts['committer']

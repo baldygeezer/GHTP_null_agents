@@ -51,19 +51,20 @@ class LookupBuilder:
 
 
 def process_commits(commits, builder):
-    n_author = 0
-    n_committer = 0
+    counts ={"author": 0, "committer": 0}
+
     for commit in commits:
-        for role in ("author", "committer"):
+        for role in counts:
             actor = commit.get("commit", {}).get(role)
             if actor is None:
                 continue
             login = extract_login(actor.get("user"))
             if not login:
                 continue
-            builder.add(actor.get("name"), actor.get("email"), login, commit["url"], role)
-            if role == "author":
-                n_author += 1
-            else:
-                n_committer += 1
-    return n_author, n_committer
+            builder.add(name = actor.get("name"),
+                        email = actor.get("email"),
+                        login = login,
+                        commit_url = commit["url"],
+                        role=role)
+            counts[role] += 1
+    return counts['author'], counts['committer']

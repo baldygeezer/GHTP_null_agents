@@ -58,17 +58,19 @@ class MintRegistry:
             {
                 "slug": slug,
                 "occurrences": occurrences,
-                "emails": sorted({o["email"] for o in occurrences}),
+                "emails": sorted({o["email"] for o in occurrences if o["email"]}),
                 "uri": self.base + slug,
             }
             for slug, occurrences in self._occurrences.items()
-            if len({(o["name"], normalise_email(o["email"])) for o in occurrences}) > 1
+            if len({(o["name"], normalise_email(o["email"])) for o in occurrences if o["email"]}) > 1
         ]
 
         email_names = {}
         email_slugs = {}
         for slug, occurrences in self._occurrences.items():
             for o in occurrences:
+                if not o["email"]:
+                    continue
                 key = normalise_email(o["email"])
                 email_names.setdefault(key, set()).add(o["name"])
                 email_slugs.setdefault(key, set()).add(slug)

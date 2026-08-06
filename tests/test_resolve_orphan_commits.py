@@ -212,3 +212,14 @@ class TestProcessSlot:
         assert method is None
         assert unresolved[0]["reason"] == "name has no slug-able characters"
 
+class TestWebUiSlot:
+
+    def _run(self, role="committer", name="GitHub", email="noreply@github.com"):
+        g = Graph()
+        unresolved = []
+        stats = __import__("collections").defaultdict(int)
+        registry = MintRegistry(BASE)
+        method = process_slot(g, "https://github.com/o/r/commit/abc",
+                              person(name, email, None), role,
+                              empty_lookup(), registry, unresolved, stats)
+        return g, method

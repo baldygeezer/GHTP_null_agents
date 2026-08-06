@@ -1,7 +1,12 @@
+import argparse
+import json
 import re
+from pathlib import Path
 
 from rdflib import URIRef, Graph, Literal, BNode, Namespace
 from rdflib.namespace import RDF, RDFS
+
+from ghtp_null_agents.lookup_builder import COMMITS_PATH, LOOKUP_PATH
 from ghtp_null_agents.normalise_names import normalise_name, normalise_email, mint_id_from_name
 
 DEFAULT_AGENT_BASE = "http://soton.ac.uk/pars/agents/"
@@ -13,6 +18,8 @@ SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.\-]*:")
 WEB_UI_EMAIL = "noreply@github.com"
 WEB_UI_SLUG = "github-web-ui"
 WEB_UI_LABEL = "GitHub (web UI)"
+
+OUTPUT_PATH=Path('data') / "orphans.ttl"
 
 def resolve_agent_uri(identifier):
     # if it's already a complete uri (has a scheme) leave it alone
@@ -158,4 +165,39 @@ def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
     return "minted"
 
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--commits", default=str(COMMITS_PATH))
+    parser.add_argument("--lookup", default=str(LOOKUP_PATH))
+    parser.add_argument("--output", default=str(OUTPUT_PATH))
+    ns = parser.parse_args()
+
+    commits = json.loads(Path(ns.commits).read_text(encoding="utf-8"))
+    lookup = json.loads(Path(ns.lookup).read_text(encoding="utf-8"))
+    output_path = Path(ns.output)
+
+    graph = Graph()
+    registry = MintRegistry(DEFAULT_AGENT_BASE)
+    unresolved = []
+    stats = {}
+
+    for c in commits:
+        process_slot(graph, c["url"], c["commit"]["author"], "author", lookup, registry, unresolved, stats)
+
+    output_path.write_text(graph.serialize(format="turtle"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    main()
 

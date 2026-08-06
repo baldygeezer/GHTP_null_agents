@@ -1,3 +1,6 @@
+import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -5,7 +8,7 @@ from rdflib import URIRef, Graph, RDF, PROV, RDFS, Literal
 
 from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier, \
     MintRegistry, process_slot, G2P, WEB_UI_SLUG
-from tests.fixtures import user_json, commit, person
+from tests.fixtures import user_json, commit, person, kieker_commits
 
 SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "resolve_orphan_commits.py"
 BASE = DEFAULT_AGENT_BASE
@@ -249,3 +252,29 @@ class TestWebUiSlot:
         g, method = self._run(name="ghgr", email="ghgr@users.noreply.github.com")
         assert method == "minted"
         assert (URIRef(BASE + "ghgr"), RDF.type, PROV.Agent) in g
+
+
+class TestResolverCli:
+
+    def _run(self, tmp_path, commits, lookup, extra=()):
+        commits_path = tmp_path / "commits.json"
+        commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
+        lookup_path = tmp_path / "lookup.json"
+        lookup_path.write_text(json.dumps(lookup, ensure_ascii=False), encoding="utf-8")
+        out_ttl = tmp_path / "orphans.ttl"
+
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), "--commits", str(commits_path), "--lookup", str(lookup_path),
+             "--output", str(out_ttl), *extra],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 0, proc.stderr
+        return (proc, out_ttl,
+                tmp_path / "orphans_unresolved.json",
+                tmp_path / "orphans_review.json")
+
+    def test_writes_parseable_turtle(self, tmp_path, kieker_commits):
+        _, out_ttl, _, _ = self._run(tmp_path, kieker_commits, empty_lookup())
+        g = Graph()
+        g.parse(out_ttl, format="turtle")
+        assert len(g) > 0

@@ -206,3 +206,9 @@ class TestProcessSlot:
         assert method == "lookup-email"
         assert (URIRef("https://github.com/somelogin"), RDF.type, PROV.Agent) in g
 
+    def test_email_only_slot_cannot_be_minted(self):
+        # Minting is name-based; there is no name to slug.
+        g, unresolved, method, _ = self._run(name=None, email="only@x.de")
+        assert method is None
+        assert unresolved[0]["reason"] == "name has no slug-able characters"
+

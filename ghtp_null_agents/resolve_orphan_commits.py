@@ -114,7 +114,7 @@ def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
         graph.add((uri, RDF.type, PROV.Agent))
         return method
 
-    slug = mint_id_from_name(person.get("name"))
+    slug = mint_id_from_name(person.get("name")) if person.get("name") else ""
     if not slug:
         unresolved.append({
             "name": person.get("name"),

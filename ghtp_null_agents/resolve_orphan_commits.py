@@ -51,7 +51,12 @@ class MintRegistry:
         ]
 
         name_email_conflicts = [
-            {"slug": slug, "occurrences": occurrences}
+            {
+                "slug": slug,
+                "occurrences": occurrences,
+                "emails": sorted({o["email"] for o in occurrences}),
+                "uri": self.base + slug,
+            }
             for slug, occurrences in self._occurrences.items()
             if len({(o["name"], o["email"]) for o in occurrences}) > 1
         ]
@@ -71,3 +76,5 @@ class MintRegistry:
             "name_email_conflicts": name_email_conflicts,
             "email_name_conflicts": email_name_conflicts,
         }
+
+

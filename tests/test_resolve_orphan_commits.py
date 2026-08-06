@@ -72,3 +72,15 @@ class TestMintRegistry:
         assert review["email_name_conflicts"] == []
         assert review["minted"][0]["slots"] == 2
 
+    def test_one_name_two_emails_is_flagged_as_possible_false_merge(self):
+        #  Nina at uni-oldenburg vs Nina at soton -- probably the same person, but needs manual review
+        r = MintRegistry(BASE)
+        r.mint("ninamarwede", "Nina Marwede", "nina.marwede@uni-oldenburg.de", "u1", "author")
+        r.mint("ninamarwede", "Nina Marwede", "nina.marwede@soton.ac.uk", "u2", "author")
+
+        conflicts = r.review()["name_email_conflicts"]
+        assert len(conflicts) == 1
+        assert conflicts[0]["slug"] == "ninamarwede"
+        assert conflicts[0]["emails"] == ["nina.marwede@soton.ac.uk", "nina.marwede@uni-oldenburg.de"]
+        assert conflicts[0]["uri"] == BASE + "ninamarwede"
+

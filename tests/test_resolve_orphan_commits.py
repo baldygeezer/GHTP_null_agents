@@ -4,7 +4,7 @@ import pytest
 from rdflib import URIRef, Graph, RDF, PROV, RDFS, Literal
 
 from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier, \
-    MintRegistry, process_slot, G2P
+    MintRegistry, process_slot, G2P, WEB_UI_SLUG
 from tests.fixtures import user_json, commit, person
 
 SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "resolve_orphan_commits.py"
@@ -228,6 +228,18 @@ class TestWebUiSlot:
         _, method = self._run()
         assert method == "web-ui"
 
+    def test_synthetic_agent_for_web_uri(self):
+        g, _ = self._run()
+        assert (URIRef(BASE + WEB_UI_SLUG), RDF.type, PROV.Agent) in g
 
+    def test_web_ui_is_software_agent(self):
+        g, _ = self._run()
+        assert (URIRef(BASE + WEB_UI_SLUG), RDF.type, PROV.SoftwareAgent) in g
 
+    def test_web_ui_has_committer_role(self):
+        g, _ = self._run()
+        assert list(g.objects(None, PROV.hadRole)) == [G2P["committer"]]
 
+    def test_github_is_never_minted_as_an_agent(self):
+        g, _ = self._run()
+        assert (URIRef(BASE + "github"), RDF.type, PROV.Agent) not in g

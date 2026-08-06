@@ -9,6 +9,11 @@ PROV = Namespace("http://www.w3.org/ns/prov#")
 G2P = Namespace("http://purl.org/github2prov/")
 SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.\-]*:")
 
+# github web UI committer identity
+WEB_UI_EMAIL = "noreply@github.com"
+WEB_UI_SLUG = "github-web-ui"
+WEB_UI_LABEL = "GitHub (web UI)"
+
 def resolve_agent_uri(identifier):
     # if it's already a complete uri (has a scheme) leave it alone
     if SCHEME_RE.match(identifier):
@@ -108,7 +113,18 @@ def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
         })
         return None
 
-    if person.get("email") == "noreply@github.com":
+    if person.get("email") == WEB_UI_EMAIL:
+        uri = URIRef(DEFAULT_AGENT_BASE + WEB_UI_SLUG)
+        graph.add((uri, RDF.type, PROV.Agent))
+        graph.add((uri, RDF.type, PROV.SoftwareAgent))
+
+        commit_ref = URIRef(commit_url)
+        graph.add((commit_ref, PROV.wasAssociatedWith, uri))
+        qassoc = BNode()
+        graph.add((commit_ref, PROV.qualifiedAssociation, qassoc))
+        graph.add((qassoc, PROV.agent, uri))
+        graph.add((qassoc, PROV.hadRole, G2P[role]))
+
         return "web-ui"
 
     login, method = resolve_identifier(person.get("name"), person.get("email"), lookup)

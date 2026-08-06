@@ -84,3 +84,11 @@ class TestMintRegistry:
         assert conflicts[0]["emails"] == ["nina.marwede@soton.ac.uk", "nina.marwede@uni-oldenburg.de"]
         assert conflicts[0]["uri"] == BASE + "ninamarwede"
 
+    def test_false_merge_conflict_carries_inf(self):
+        r = MintRegistry(BASE)
+        r.mint("ninamarwede", "Nina Marwede", "a@x.de", "commit-a", "author")
+        r.mint("ninamarwede", "Nina Marwede", "b@x.de", "commit-b", "committer")
+
+        occurrencess = r.review()["name_email_conflicts"][0]["occurrences"]
+        assert {o["commit_url"] for o in occurrencess} == {"commit-a", "commit-b"}
+        assert {o["email"] for o in occurrencess} == {"a@x.de", "b@x.de"}

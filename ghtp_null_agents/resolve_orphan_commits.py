@@ -21,9 +21,10 @@ def resolve_agent_uri(identifier):
 
 
 def resolve_identifier(name, email, lookup):
-    name_key = normalise_name(name)
-    if name_key in lookup["by_name"]:
-        return lookup["by_name"][name_key], "lookup-name"
+    if name:
+        name_key = normalise_name(name)
+        if name_key in lookup["by_name"]:
+            return lookup["by_name"][name_key], "lookup-name"
 
     email_key = normalise_email(email)
     if email_key in lookup["by_email"]:

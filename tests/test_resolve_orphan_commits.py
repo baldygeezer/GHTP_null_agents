@@ -199,3 +199,10 @@ class TestProcessSlot:
         g, unresolved, method, _ = self._run(name=None, email=None)
         assert method is None
         assert unresolved[0]["reason"] == "no name or email"
+
+    def test_email_only_slot_can_still_resolve_via_lookup(self):
+        lookup = empty_lookup(by_email={"only@x.de": "somelogin"})
+        g, unresolved, method, _ = self._run(name=None, email="only@x.de", lookup=lookup)
+        assert method == "lookup-email"
+        assert (URIRef("https://github.com/somelogin"), RDF.type, PROV.Agent) in g
+

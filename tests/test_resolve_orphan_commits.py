@@ -92,3 +92,23 @@ class TestMintRegistry:
         occurrencess = r.review()["name_email_conflicts"][0]["occurrences"]
         assert {o["commit_url"] for o in occurrencess} == {"commit-a", "commit-b"}
         assert {o["email"] for o in occurrencess} == {"a@x.de", "b@x.de"}
+
+    def test_one_email_two_names_is_flagged_as_possible_false_split(self):
+        # The mirror risk: same human, inconsistent name spelling, so the
+        # name-based URI splits them in two.
+        r = MintRegistry(BASE)
+        r.mint("ninamarwede", "Nina Marwede", "nina@x.de", "u1", "author")
+        r.mint("nmarwede", "N. Marwede", "nina@x.de", "u2", "author")
+
+        conflicts = r.review()["email_name_conflicts"]
+        assert len(conflicts) == 1
+        assert conflicts[0]["email"] == "nina@x.de"
+        assert conflicts[0]["slugs"] == ["ninamarwede", "nmarwede"]
+        assert conflicts[0]["uris"] == [BASE + "ninamarwede", BASE + "nmarwede"]
+
+    def test_email_matching_is_case_insensitive(self):
+        r = MintRegistry(BASE)
+        r.mint("ninamarwede", "Nina Marwede", "Nina@X.de", "u1", "author")
+        r.mint("ninamarwede", "Nina Marwede", "nina@x.de", "u2", "author")
+        assert r.review()["name_email_conflicts"] == []
+

@@ -58,15 +58,23 @@ class MintRegistry:
                 "uri": self.base + slug,
             }
             for slug, occurrences in self._occurrences.items()
-            if len({(o["name"], o["email"]) for o in occurrences}) > 1
+            if len({(o["name"], normalise_email(o["email"])) for o in occurrences}) > 1
         ]
 
         email_names = {}
-        for occurrences in self._occurrences.values():
+        email_slugs = {}
+        for slug, occurrences in self._occurrences.items():
             for o in occurrences:
-                email_names.setdefault(o["email"], set()).add(o["name"])
+                key = normalise_email(o["email"])
+                email_names.setdefault(key, set()).add(o["name"])
+                email_slugs.setdefault(key, set()).add(slug)
         email_name_conflicts = [
-            {"email": email, "names": names}
+            {
+                "email": email,
+                "names": names,
+                "slugs": sorted(email_slugs[email]),
+                "uris": [self.base + slug for slug in sorted(email_slugs[email])],
+            }
             for email, names in email_names.items()
             if len(names) > 1
         ]

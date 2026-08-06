@@ -46,7 +46,11 @@ class MintRegistry:
 
     def review(self):
         minted = [
-            {"slug": slug, "slots": len(occurrences)}
+            {
+                "slug": slug,
+                "slots": len(occurrences),
+                "names": sorted({o["name"] for o in occurrences}),
+            }
             for slug, occurrences in self._occurrences.items()
         ]
 

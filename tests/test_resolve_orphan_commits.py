@@ -112,3 +112,10 @@ class TestMintRegistry:
         r.mint("ninamarwede", "Nina Marwede", "nina@x.de", "u2", "author")
         assert r.review()["name_email_conflicts"] == []
 
+    def test_minted_record_collects_all_name_spellings(self):
+        r = MintRegistry(BASE)
+        r.mint("ninamarwede", "Nina Marwede", "n@x.de", "u1", "author")
+        r.mint("ninamarwede", "NINA MARWEDE", "n@x.de", "u2", "author")
+        assert r.review()["minted"][0]["names"] == ["NINA MARWEDE", "Nina Marwede"]
+
+

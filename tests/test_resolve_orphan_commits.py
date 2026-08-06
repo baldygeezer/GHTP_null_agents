@@ -13,3 +13,6 @@ SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "resolve_
 class TestResolveAgentUri:
     def test_plain_login_becomes_github_url(self):
         assert resolve_agent_uri("avanhoorn") == URIRef("https://github.com/avanhoorn")
+
+    def test_login_case_is_preserved(self):
+        assert resolve_agent_uri("ChristianWulf") == URIRef("https://github.com/ChristianWulf")

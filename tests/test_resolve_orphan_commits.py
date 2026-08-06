@@ -188,3 +188,9 @@ class TestProcessSlot:
         g, _, _, _ = self._run()
         assert (URIRef("https://github.com/o/r/commit/abc"), RDF.type, PROV.Activity) not in g
 
+
+    def test_unmintable_name_is_reported_not_resolved(self):
+        g, unresolved, method, _ = self._run(name="张伟", email=None)
+        assert method is None
+        assert len(g) == 0
+        assert unresolved[0]["reason"] == "name has no slug-able characters"

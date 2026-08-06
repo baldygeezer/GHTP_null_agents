@@ -104,6 +104,16 @@ def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
         return method
 
     slug = mint_id_from_name(person.get("name"))
+    if not slug:
+        unresolved.append({
+            "name": person.get("name"),
+            "email": person.get("email"),
+            "commit_url": commit_url,
+            "role": role,
+            "reason": "name has no slug-able characters",
+        })
+        return None
+
     uri = registry.mint(slug, person.get("name"), person.get("email"), commit_url, role)
     graph.add((uri, RDF.type, PROV.Agent))
     graph.add((uri, RDFS.label, Literal(person.get("name"))))

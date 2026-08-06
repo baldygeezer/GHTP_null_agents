@@ -26,3 +26,7 @@ class TestResolveAgentUri:
     def test_http_value_is_used_verbatim(self):
         # pin a manually-curated agent to a minted PARS URI.
         assert resolve_agent_uri(BASE + "ninamarwede") == URIRef(BASE + "ninamarwede")
+
+    def test_manual_id_is_used_verbatim(self):
+        # pin a manually-curated agent to a minted PARS URI.
+        assert resolve_agent_uri(BASE + "ninamarwede") == URIRef(BASE + "ninamarwede")

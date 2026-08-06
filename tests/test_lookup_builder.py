@@ -9,7 +9,7 @@ import pytest
 from ghtp_null_agents.lookup_builder import extract_login, LookupBuilder, process_commits, COMMITS_PATH, LOOKUP_PATH
 from tests.fixtures import user_json, commit, person, kieker_commits
 
-
+SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "lookup_builder.py"
 
 class TestExtractLogin:
 
@@ -196,7 +196,7 @@ class TestProcessCommits:
         b = LookupBuilder()
         assert process_commits([{"url": "u1", "commit": {"author": None, "committer": None}}], b) == (0, 0)
 
-SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "lookup_builder.py"
+
 
 @pytest.mark.usefixtures("kieker_commits")
 class TestBuilderCli:

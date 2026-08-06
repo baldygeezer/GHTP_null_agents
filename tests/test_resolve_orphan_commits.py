@@ -139,6 +139,6 @@ class TestProcessSlot:
             graph = g, commit_url ="https://github.com/o/r/commit/abc",
             person = person(name, email, None), role = role,
             lookup = lookup if lookup is not None else empty_lookup(),
-            registry = registry, unresolves = unresolved, stats = stats,
+            registry = registry, unresolved = unresolved, stats = stats,
         )
         return g, unresolved, method, registry

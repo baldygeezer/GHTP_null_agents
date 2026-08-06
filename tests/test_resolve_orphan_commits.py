@@ -243,3 +243,9 @@ class TestWebUiSlot:
     def test_github_is_never_minted_as_an_agent(self):
         g, _ = self._run()
         assert (URIRef(BASE + "github"), RDF.type, PROV.Agent) not in g
+
+    def test_users_noreply_address_is_treated_as_agent(self):
+        # Must NOT hit the web-UI branch.
+        g, method = self._run(name="ghgr", email="ghgr@users.noreply.github.com")
+        assert method == "minted"
+        assert (URIRef(BASE + "ghgr"), RDF.type, PROV.Agent) in g

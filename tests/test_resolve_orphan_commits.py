@@ -223,3 +223,11 @@ class TestWebUiSlot:
                               person(name, email, None), role,
                               empty_lookup(), registry, unresolved, stats)
         return g, method
+
+    def test_detects_web_ui(self):
+        _, method = self._run()
+        assert method == "web-ui"
+
+
+
+

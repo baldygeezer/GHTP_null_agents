@@ -108,6 +108,9 @@ def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
         })
         return None
 
+    if person.get("email") == "noreply@github.com":
+        return "web-ui"
+
     login, method = resolve_identifier(person.get("name"), person.get("email"), lookup)
     if login:
         uri = resolve_agent_uri(login)

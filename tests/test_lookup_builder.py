@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from ghtp_null_agents.lookup_builder import extract_login, LookupBuilder, process_commits
+from ghtp_null_agents.lookup_builder import extract_login, LookupBuilder, process_commits, COMMITS_PATH, LOOKUP_PATH
 from tests.fixtures import user_json, commit, person, kieker_commits
 
 
@@ -207,7 +207,7 @@ class TestBuilderCli:
         lookup_path = tmp_path / "lookup.json"
 
         proc = subprocess.run(
-            [sys.executable, str(SCRIPT), str(commits_path), str(lookup_path)],
+            [sys.executable, str(SCRIPT), "--commits", str(commits_path), "--lookup", str(lookup_path)],
             capture_output=True, text=True,
         )
         assert proc.returncode == 0, proc.stderr
@@ -266,8 +266,8 @@ class TestBuilderCli:
         custom = tmp_path / "my_conflicts.json"
 
         proc = subprocess.run(
-            [sys.executable, str(SCRIPT), str(commits_path),
-             str(tmp_path / "lookup.json"), "--conflicts", str(custom)],
+            [sys.executable, str(SCRIPT), "--commits", str(commits_path),
+             "--lookup", str(tmp_path / "lookup.json"), "--conflicts", str(custom)],
             capture_output=True, text=True,
         )
         assert proc.returncode == 0, proc.stderr
@@ -279,8 +279,8 @@ class TestBuilderCli:
         custom = tmp_path / "my_conflicts.json"
 
         proc = subprocess.run(
-            [sys.executable, str(SCRIPT), str(commits_path),
-             str(tmp_path / "lookup.json"), "--conflicts", str(custom)],
+            [sys.executable, str(SCRIPT), "--commits", str(commits_path),
+             "--lookup", str(tmp_path / "lookup.json"), "--conflicts", str(custom)],
             capture_output=True, text=True,
         )
         assert proc.returncode == 0, proc.stderr
@@ -295,3 +295,40 @@ class TestBuilderCli:
         ]
         _, _, conflicts_path = self._run(tmp_path, commits)
         assert "Jürgen" in conflicts_path.read_text(encoding="utf-8")
+
+
+    def test_commits_location_has_default(self, tmp_path, kieker_commits):
+        commits_path = tmp_path / COMMITS_PATH
+        commits = [
+            commit("u1", person("Hugh Jars", "h.jars@x.de", user_json("login-one"))),
+            commit("u2", person("Chris Peacock", "CPK@x.de", user_json("login-two"))),
+        ]
+        commits_path.parent.mkdir(parents=True, exist_ok=True)
+        commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
+        custom = tmp_path / "my_conflicts.json"
+
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT),
+             "--lookup", str(tmp_path / "lookup.json"), "--conflicts", str(custom)],
+            capture_output=True, text=True, cwd=tmp_path,
+        )
+        assert proc.returncode == 0, proc.stderr
+        assert "chris peacock" in Path(tmp_path / "lookup.json").read_text(encoding="utf-8")
+
+
+    def test_lookup_location_has_default(self, tmp_path, kieker_commits):
+        commits_path = tmp_path / COMMITS_PATH
+        commits = [
+            commit("u1", person("William Ellard", "w.ellerd@x.de", user_json("login-one"))),
+            commit("u2", person("Chris Peacock", "CPK@x.de", user_json("login-two"))),
+        ]
+        commits_path.parent.mkdir(parents=True, exist_ok=True)
+        commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
+        custom = tmp_path / "my_conflicts.json"
+
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), "--commits", str(commits_path), "--conflicts", str(custom)],
+            capture_output=True, text=True, cwd=tmp_path,
+        )
+        assert proc.returncode == 0, proc.stderr
+        assert "william ellard" in Path(tmp_path / LOOKUP_PATH).read_text(encoding="utf-8")

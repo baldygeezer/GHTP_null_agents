@@ -1,9 +1,11 @@
+import argparse
 import json
-import sys
 from pathlib import Path
 
 from ghtp_null_agents.normalise_names import normalise_name, normalise_email
 
+COMMITS_PATH=Path('data') / "commits.json"
+LOOKUP_PATH=Path('data') / "lookup.json"
 
 def extract_login(usr: dict):
     if not isinstance(usr, dict):
@@ -74,12 +76,15 @@ def process_commits(commits, builder):
 
 
 def main():
-    commits_path = Path(sys.argv[1])
-    lookup_path = Path(sys.argv[2])
-    if "--conflicts" in sys.argv:
-        conflicts_path = Path(sys.argv[sys.argv.index("--conflicts") + 1])
-    else:
-        conflicts_path = lookup_path.parent / "lookup_conflicts.json"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--commits", default=str(COMMITS_PATH))
+    parser.add_argument("--lookup", default=str(LOOKUP_PATH))
+    parser.add_argument("--conflicts", default=None)
+    ns = parser.parse_args()
+
+    commits_path = Path(ns.commits)
+    lookup_path = Path(ns.lookup)
+    conflicts_path = Path(ns.conflicts) if ns.conflicts else lookup_path.parent / "lookup_conflicts.json"
 
     commits = json.loads(commits_path.read_text(encoding="utf-8"))
     builder = LookupBuilder()

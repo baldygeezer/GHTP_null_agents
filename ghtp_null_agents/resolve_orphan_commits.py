@@ -1,5 +1,5 @@
 
-from rdflib import URIRef
+from rdflib import URIRef, Graph
 
 from ghtp_null_agents.normalise_names import normalise_name, normalise_email
 
@@ -92,3 +92,6 @@ class MintRegistry:
         }
 
 
+def process_slot(g: Graph, commit_url: str, person: dict, role: str,
+                 lookup: dict, registry: MintRegistry, unresolved: list, stats: dict):
+    pass

@@ -28,3 +28,46 @@ def resolve_identifier(name, email, lookup):
 
     return None, None
 
+class MintRegistry:
+    """
+    Tracks every agent URI minted from a name, so that name/email
+    disagreements can be surfaced for manual review afterwards.
+    """
+
+    def __init__(self, base):
+        self.base = base
+        self._occurrences = {}
+
+    def mint(self, slug, name, email, commit_url, role):
+        self._occurrences.setdefault(slug, []).append(
+            {"name": name, "email": email, "commit_url": commit_url, "role": role}
+        )
+        return URIRef(self.base + slug)
+
+    def review(self):
+        minted = [
+            {"slug": slug, "slots": len(occurrences)}
+            for slug, occurrences in self._occurrences.items()
+        ]
+
+        name_email_conflicts = [
+            {"slug": slug, "occurrences": occurrences}
+            for slug, occurrences in self._occurrences.items()
+            if len({(o["name"], o["email"]) for o in occurrences}) > 1
+        ]
+
+        email_names = {}
+        for occurrences in self._occurrences.values():
+            for o in occurrences:
+                email_names.setdefault(o["email"], set()).add(o["name"])
+        email_name_conflicts = [
+            {"email": email, "names": names}
+            for email, names in email_names.items()
+            if len(names) > 1
+        ]
+
+        return {
+            "minted": minted,
+            "name_email_conflicts": name_email_conflicts,
+            "email_name_conflicts": email_name_conflicts,
+        }

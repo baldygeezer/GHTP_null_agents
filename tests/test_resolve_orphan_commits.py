@@ -3,7 +3,8 @@ from pathlib import Path
 import pytest
 from rdflib import URIRef
 
-from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier
+from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier, \
+    MintRegistry
 from tests.fixtures import user_json, commit, person
 
 SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "resolve_orphan_commits.py"
@@ -50,3 +51,24 @@ class TestResolveIdentifier:
 
     def test_returns_none_when_both_miss(self):
         assert resolve_identifier("Nobody", "n@x.de", empty_lookup()) == (None, None)
+
+
+class TestMintRegistry:
+    def test_mints_deterministic_uri(self):
+        r = MintRegistry(BASE)
+        uri = r.mint(slug = "ninamarwede",
+                     name = "Nina Marwede",
+                     email = "nina@x.de",
+                     commit_url = "u1",
+                     role = "author")
+        assert uri == URIRef(BASE + "ninamarwede")
+
+    def test_same_name_and_email_is_not_a_conflict(self):
+        r = MintRegistry(BASE)
+        r.mint("ninamarwede", "Nina Marwede", "nina.marwede@uni-oldenburg.de", "u1", "author")
+        r.mint("ninamarwede", "Nina Marwede", "nina.marwede@uni-oldenburg.de", "u1", "committer")
+        review = r.review()
+        assert review["name_email_conflicts"] == []
+        assert review["email_name_conflicts"] == []
+        assert review["minted"][0]["slots"] == 2
+

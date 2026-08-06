@@ -118,4 +118,15 @@ class TestMintRegistry:
         r.mint("ninamarwede", "NINA MARWEDE", "n@x.de", "u2", "author")
         assert r.review()["minted"][0]["names"] == ["NINA MARWEDE", "Nina Marwede"]
 
+    def test_missing_email_does_not_create_a_conflict(self):
+        r = MintRegistry(BASE)
+        r.mint("someone", "Someone", None, "u1", "author")
+        r.mint("someone", "Someone", "s@x.de", "u2", "author")
+        assert r.review()["name_email_conflicts"] == []
+
+    def test_custom_base_is_honoured(self):
+        r = MintRegistry("http://example.org/a/")
+        assert r.mint("x", "X", None, "u1", "author") == URIRef("http://example.org/a/x")
+
+
 

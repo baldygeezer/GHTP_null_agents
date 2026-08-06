@@ -1,10 +1,10 @@
 from pathlib import Path
 
 import pytest
-from rdflib import URIRef
+from rdflib import URIRef, Graph
 
 from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier, \
-    MintRegistry
+    MintRegistry, process_slot
 from tests.fixtures import user_json, commit, person
 
 SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "resolve_orphan_commits.py"
@@ -128,5 +128,17 @@ class TestMintRegistry:
         r = MintRegistry("http://example.org/a/")
         assert r.mint("x", "X", None, "u1", "author") == URIRef("http://example.org/a/x")
 
-
-
+class TestProcessSlot:
+    def _run(self, name="Nina Marwede", email="nina@x.de", lookup=None, role="author",
+             registry=None, base=BASE):
+        g = Graph()
+        unresolved = []
+        stats = __import__("collections").defaultdict(int)
+        registry = registry or MintRegistry(base)
+        method = process_slot(
+            graph = g, commit_url ="https://github.com/o/r/commit/abc",
+            person = person(name, email, None), role = role,
+            lookup = lookup if lookup is not None else empty_lookup(),
+            registry = registry, unresolves = unresolved, stats = stats,
+        )
+        return g, unresolved, method, registry

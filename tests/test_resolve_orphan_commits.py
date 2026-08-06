@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from rdflib import URIRef
 
 from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri
 from tests.fixtures import user_json, commit, person

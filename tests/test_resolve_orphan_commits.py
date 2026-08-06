@@ -4,7 +4,7 @@ import pytest
 from rdflib import URIRef, Graph, RDF, PROV, RDFS, Literal
 
 from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier, \
-    MintRegistry, process_slot
+    MintRegistry, process_slot, G2P
 from tests.fixtures import user_json, commit, person
 
 SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "resolve_orphan_commits.py"
@@ -51,7 +51,6 @@ class TestResolveIdentifier:
 
     def test_returns_none_when_both_miss(self):
         assert resolve_identifier("Nobody", "n@x.de", empty_lookup()) == (None, None)
-
 
 class TestMintRegistry:
     def test_mints_deterministic_uri(self):
@@ -174,3 +173,18 @@ class TestProcessSlot:
         assert method == "lookup-name"
         assert (URIRef("svn:nina"), RDF.type, PROV.Agent) in g
         assert registry.review()["minted"] == []
+
+    @pytest.mark.parametrize("role", ["author", "committer"])
+    def test_had_role_is_a_resource_not_a_literal(self, role):
+        # REGRESSION: roles were previously emitted as string literals.
+        g, _, _, _ = self._run(role=role)
+        roles = list(g.objects(None, PROV.hadRole))
+        assert roles == [G2P[role]]
+        assert isinstance(roles[0], URIRef)
+        assert not isinstance(roles[0], Literal)
+
+    def test_does_not_create_the_commit_activity_node(self):
+        # The prov:Activity belongs to the main pipeline.
+        g, _, _, _ = self._run()
+        assert (URIRef("https://github.com/o/r/commit/abc"), RDF.type, PROV.Activity) not in g
+

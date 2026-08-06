@@ -1,11 +1,12 @@
 import re
 
-from rdflib import URIRef, Graph, RDF, PROV, RDFS, Literal, BNode
-
+from rdflib import URIRef, Graph, Literal, BNode, Namespace
+from rdflib.namespace import RDF, RDFS
 from ghtp_null_agents.normalise_names import normalise_name, normalise_email, mint_id_from_name
 
 DEFAULT_AGENT_BASE = "http://soton.ac.uk/pars/agents/"
-
+PROV = Namespace("http://www.w3.org/ns/prov#")
+G2P = Namespace("http://purl.org/github2prov/")
 SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.\-]*:")
 
 def resolve_agent_uri(identifier):
@@ -112,6 +113,7 @@ def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
     qassoc = BNode()
     graph.add((commit_ref, PROV.qualifiedAssociation, qassoc))
     graph.add((qassoc, PROV.agent, uri))
+    graph.add((qassoc, PROV.hadRole, G2P[role]))
 
     return "minted"
 

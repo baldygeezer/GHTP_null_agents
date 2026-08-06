@@ -1,15 +1,17 @@
+import re
 
-from rdflib import URIRef, Graph
+from rdflib import URIRef, Graph, RDF, PROV, RDFS, Literal, BNode
 
-from ghtp_null_agents.normalise_names import normalise_name, normalise_email
+from ghtp_null_agents.normalise_names import normalise_name, normalise_email, mint_id_from_name
 
 DEFAULT_AGENT_BASE = "http://soton.ac.uk/pars/agents/"
 
+SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.\-]*:")
+
 def resolve_agent_uri(identifier):
-    # if it's already a complete url leave it alone
-    for scheme in ["https://", "http://", "mailto:"]:
-        if identifier.startswith(scheme):
-            return URIRef(identifier)
+    # if it's already a complete uri (has a scheme) leave it alone
+    if SCHEME_RE.match(identifier):
+        return URIRef(identifier)
     # if it's a bare email address make it into a mailto:
     if "@" in identifier:
         return URIRef(f"mailto:{identifier}")
@@ -94,4 +96,24 @@ class MintRegistry:
 
 def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
                  lookup: dict, registry: MintRegistry, unresolved: list, stats: dict):
-    pass
+    login, method = resolve_identifier(person.get("name"), person.get("email"), lookup)
+    if login:
+        uri = resolve_agent_uri(login)
+        graph.add((uri, RDF.type, PROV.Agent))
+        return method
+
+    slug = mint_id_from_name(person.get("name"))
+    uri = registry.mint(slug, person.get("name"), person.get("email"), commit_url, role)
+    graph.add((uri, RDF.type, PROV.Agent))
+    graph.add((uri, RDFS.label, Literal(person.get("name"))))
+
+    commit_ref = URIRef(commit_url)
+    graph.add((commit_ref, PROV.wasAssociatedWith, uri))
+    qassoc = BNode()
+    graph.add((commit_ref, PROV.qualifiedAssociation, qassoc))
+    graph.add((qassoc, PROV.agent, uri))
+
+    return "minted"
+
+
+

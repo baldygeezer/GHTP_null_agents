@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from rdflib import URIRef, Graph
+from rdflib import URIRef, Graph, RDF, PROV, RDFS, Literal
 
 from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier, \
     MintRegistry, process_slot
@@ -142,3 +142,35 @@ class TestProcessSlot:
             registry = registry, unresolved = unresolved, stats = stats,
         )
         return g, unresolved, method, registry
+
+    def test_lookup_hit_uses_github_uri(self):
+        lookup = empty_lookup(by_name={"nina marwede": "ninalogin"})
+        g, _, method, _ = self._run(lookup=lookup)
+        assert method == "lookup-name"
+        assert (URIRef("https://github.com/ninalogin"), RDF.type, PROV.Agent) in g
+
+    def test_miss_mints_a_pars_uri(self):
+        graph, unresolved, method, _ = self._run()
+        assert method == "minted"
+        assert unresolved == []
+        assert (URIRef(BASE + "ninamarwede"), RDF.type, PROV.Agent) in graph
+
+    def test_minted_agent_is_labelled_with_the_raw_name(self):
+        g, _, _, _ = self._run()
+        assert (URIRef(BASE + "ninamarwede"), RDFS.label, Literal("Nina Marwede")) in g
+
+    def test_minted_agent_gets_plain_and_qualified_association(self):
+        g, _, _, _ = self._run()
+        agent = URIRef(BASE + "ninamarwede")
+        commit_uri = URIRef("https://github.com/o/r/commit/abc")
+        assert (commit_uri, PROV.wasAssociatedWith, agent) in g
+        qassoc = g.value(commit_uri, PROV.qualifiedAssociation)
+        assert (qassoc, PROV.agent, agent) in g
+
+    def test_lookup_overrides_minting(self):
+        # The documented manual-curation route: add an entry, stop minting.
+        lookup = empty_lookup(by_name={"nina marwede": "svn:nina"})
+        g, _, method, registry = self._run(lookup=lookup)
+        assert method == "lookup-name"
+        assert (URIRef("svn:nina"), RDF.type, PROV.Agent) in g
+        assert registry.review()["minted"] == []

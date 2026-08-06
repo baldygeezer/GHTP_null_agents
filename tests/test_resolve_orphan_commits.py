@@ -194,3 +194,8 @@ class TestProcessSlot:
         assert method is None
         assert len(g) == 0
         assert unresolved[0]["reason"] == "name has no slug-able characters"
+
+    def test_no_name_and_no_email_is_reported(self):
+        g, unresolved, method, _ = self._run(name=None, email=None)
+        assert method is None
+        assert unresolved[0]["reason"] == "no name or email"

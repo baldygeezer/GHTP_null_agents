@@ -97,6 +97,16 @@ class MintRegistry:
 
 def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
                  lookup: dict, registry: MintRegistry, unresolved: list, stats: dict):
+    if not person.get("name") and not person.get("email"):
+        unresolved.append({
+            "name": person.get("name"),
+            "email": person.get("email"),
+            "commit_url": commit_url,
+            "role": role,
+            "reason": "no name or email",
+        })
+        return None
+
     login, method = resolve_identifier(person.get("name"), person.get("email"), lookup)
     if login:
         uri = resolve_agent_uri(login)

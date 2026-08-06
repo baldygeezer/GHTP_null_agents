@@ -92,6 +92,6 @@ class MintRegistry:
         }
 
 
-def process_slot(g: Graph, commit_url: str, person: dict, role: str,
+def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
                  lookup: dict, registry: MintRegistry, unresolved: list, stats: dict):
     pass

@@ -5,15 +5,15 @@ import sys
 import pytest
 from pathlib import Path
 
-from rdflib import Graph
+from rdflib import Graph, URIRef, RDF, PROV
 
 from tests.fixtures import commit, person, user_json, kieker_commits
 from ghtp_null_agents.lookup_builder import LookupBuilder, process_commits
-from ghtp_null_agents.resolve_orphan_commits import resolve_identifier
+from ghtp_null_agents.resolve_orphan_commits import resolve_identifier, G2P, DEFAULT_AGENT_BASE
 
 ROOT=Path(__file__).resolve().parent.parent
-BUILD=ROOT / "lookup_builder.py"
-RESOLVE = ROOT / "resolve_orphan_commits.py"
+BUILD=ROOT / "ghtp_null_agents" / "lookup_builder.py"
+RESOLVE = ROOT / "ghtp_null_agents" / "resolve_orphan_commits.py"
 
 
 @pytest.mark.parametrize("resolved_name,orphan_name", [
@@ -84,3 +84,26 @@ class TestFullCliWorkflow:
         g.parse(out_ttl, format = "turtle")
 
         return build, resolve, g, tmp_path / "orphans_unresolved.json"
+
+    def test_end_to_end_on_kieker_slice(self, tmp_path, kieker_commits):
+        _, _, g, unresolved_path = self._workflow(tmp_path, kieker_commits)
+
+        avh = URIRef("https://github.com/avanhoorn")
+        nce = URIRef("https://github.com/nils-christian")
+        assert (avh, RDF.type, PROV.Agent) in g
+        assert (nce, RDF.type, PROV.Agent) in g
+
+        # Both orphan commits attributed, each with author + committer roles.
+        for commit_url in (
+                "https://github.com/kieker-monitoring/kieker/commit/25853fd8",
+                "https://github.com/kieker-monitoring/kieker/commit/78656f09",
+        ):
+            roles = {
+                g.value(q, PROV.hadRole)
+                for q in g.objects(URIRef(commit_url), PROV.qualifiedAssociation)
+            }
+            assert roles == {G2P["author"], G2P["committer"]}
+
+        # Nobody is left unattributed any more -- the unknown contributor is minted into the agents namespace instead.
+        assert json.loads(unresolved_path.read_text(encoding="utf-8")) == []
+        assert (URIRef(DEFAULT_AGENT_BASE + "avantaclue"), RDF.type, PROV.Agent) in g

@@ -119,10 +119,11 @@ def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
             "reason": "no name or email",
         })
         return None
-
+    # the web UI branch this commit wass made using a web browswr
     if person.get("email") == WEB_UI_EMAIL:
         uri = URIRef(DEFAULT_AGENT_BASE + WEB_UI_SLUG)
         graph.add((uri, RDF.type, PROV.Agent))
+        # we treat the web ui as a software agent
         graph.add((uri, RDF.type, PROV.SoftwareAgent))
 
         commit_ref = URIRef(commit_url)
@@ -135,12 +136,14 @@ def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
         return "web-ui"
 
     login, method = resolve_identifier(person.get("name"), person.get("email"), lookup)
+    # this is the lookup hit branch - we found a github login - whoopeee!
     if login:
         uri = resolve_agent_uri(login)
         graph.add((uri, RDF.type, PROV.Agent))
         return method
-
+    # here be dragons - if we get here then there's no match, so we make unique if for the Agent
     slug = mint_id_from_name(person.get("name")) if person.get("name") else ""
+    # first, if we can't make a slug from the name...
     if not slug:
         unresolved.append({
             "name": person.get("name"),
@@ -149,8 +152,9 @@ def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
             "role": role,
             "reason": "name has no slug-able characters",
         })
+        # ...then lets just give up
         return None
-
+    # otherwise make some gubbins @todo the code that makes the assocations is being dupliacted so needs extracting into a function
     uri = registry.mint(slug, person.get("name"), person.get("email"), commit_url, role)
     graph.add((uri, RDF.type, PROV.Agent))
     graph.add((uri, RDFS.label, Literal(person.get("name"))))

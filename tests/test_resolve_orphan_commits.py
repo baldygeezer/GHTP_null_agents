@@ -312,3 +312,14 @@ class TestResolverCli:
         assert len(review["name_email_conflicts"]) == 1
         assert "false merge" in proc.stdout
         assert "ninamarwede" in proc.stdout
+
+    def test_false_split_is_reported(self, tmp_path):
+        commits = [
+            commit("https://x/commit/1", person("Nina Marwede", "nina@x.de", None)),
+            commit("https://x/commit/2", person("N. Marwede", "nina@x.de", None)),
+        ]
+        proc, _, _, review_path = self._run(tmp_path, commits, empty_lookup())
+        review = json.loads(review_path.read_text(encoding="utf-8"))
+
+        assert len(review["email_name_conflicts"]) == 1
+        assert "false split" in proc.stdout

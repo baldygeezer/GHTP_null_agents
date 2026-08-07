@@ -93,7 +93,7 @@ class MintRegistry:
         email_name_conflicts = [
             {
                 "email": email,
-                "names": names,
+                "names": sorted(names),
                 "slugs": sorted(email_slugs[email]),
                 "uris": [self.base + slug for slug in sorted(email_slugs[email])],
             }
@@ -198,6 +198,10 @@ def main():
     if review["name_email_conflicts"]:
         slugs = ", ".join(c["slug"] for c in review["name_email_conflicts"])
         print(f"{len(review['name_email_conflicts'])} possible false merge(s): {slugs} — see {review_path}")
+
+    if review["email_name_conflicts"]:
+        emails = ", ".join(c["email"] for c in review["email_name_conflicts"])
+        print(f"{len(review['email_name_conflicts'])} possible false split(s): {emails} — see {review_path}")
 
 
 

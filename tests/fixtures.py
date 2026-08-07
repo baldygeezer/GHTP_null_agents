@@ -92,8 +92,8 @@ def kieker_commits():
         ),
         commit(
             "https://github.com/kieker-monitoring/kieker/commit/654321",
-            author=person("Author McAuthorface", "ama@authorland.de", 'authorface'),
-            committer=person("Committer McCommitterface", "cmc@committerrland.de", 'committerface'),
+            author=person("Author McAuthorface", "ama@authorland.de", None),
+            committer=person("Committer McCommitterface", "cmc@committerrland.de", None),
             message="this involved two people, an author and a commiter",
         ),
     ]

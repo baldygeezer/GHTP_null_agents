@@ -191,6 +191,14 @@ class TestProcessSlot:
         assert isinstance(roles[0], URIRef)
         assert not isinstance(roles[0], Literal)
 
+    @pytest.mark.parametrize("name,expected", [("Author McAuthorface", "author"),
+                                               ("Committer McCommitterface", "committer")])
+    def test_both_roles_processed(self, name, expected):
+        g, _, _, _ = self._run(name=name, role=expected)
+        roles = list(g.objects(None, PROV.hadRole))
+        assert len(roles) == 1
+        assert roles[0] == G2P[expected]
+
     def test_does_not_create_the_commit_activity_node(self):
         # The prov:Activity belongs to the main pipeline.
         g, _, _, _ = self._run()
@@ -299,6 +307,16 @@ class TestResolverCli:
         g.parse(out_ttl, format="turtle")
         assert (URIRef(BASE + "avantaclue"), RDF.type, PROV.Agent) in g
         assert json.loads(unresolved_path.read_text(encoding="utf-8")) == []
+
+    def test_both_roles_appear(self, tmp_path, kieker_commits):
+        _, out_ttl, _, _ = self._run(tmp_path, kieker_commits, empty_lookup())
+        g = Graph()
+        g.parse(out_ttl, format="turtle")
+        triples = list(g.objects(None, PROV.hadRole))
+        assert  G2P["committer"] in triples
+        assert G2P["author"] in triples
+
+
 
     def test_review_file_lists_minted_agents(self, tmp_path, kieker_commits):
         _, _, _, review_path = self._run(tmp_path, kieker_commits, empty_lookup())

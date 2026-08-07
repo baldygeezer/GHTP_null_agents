@@ -1,7 +1,7 @@
 
 import pytest
 from pathlib import Path
-from fixtures import commit, person, user_json
+from tests.fixtures import commit, person, user_json, kieker_commits
 from ghtp_null_agents.lookup_builder import LookupBuilder, process_commits
 from ghtp_null_agents.resolve_orphan_commits import resolve_identifier
 
@@ -31,7 +31,7 @@ def test_builder_email_keys_are_findable_by_resolver():
 
     assert resolve_identifier(None, "avh@informatik.uni-kiel.de", lookup)[0] == "avanhoorn"
 
-
+@pytest.mark.usefixtures("kieker_commits")
 def test_in_process_round_trip_resolves_expected_agents(kieker_commits):
     builder = LookupBuilder()
     process_commits(kieker_commits, builder)

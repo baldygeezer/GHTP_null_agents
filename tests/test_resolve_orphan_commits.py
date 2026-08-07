@@ -8,13 +8,15 @@ from rdflib import URIRef, Graph, RDF, PROV, RDFS, Literal
 
 from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier, \
     MintRegistry, process_slot, G2P, WEB_UI_SLUG
-from tests.fixtures import user_json, commit, person, kieker_commits
+from tests.fixtures import commit, person, kieker_commits
 
 SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "resolve_orphan_commits.py"
 BASE = DEFAULT_AGENT_BASE
 
+
 def empty_lookup(by_name=None, by_email=None):
     return {"by_name": by_name or {}, "by_email": by_email or {}}
+
 
 class TestResolveAgentUri:
     def test_plain_login_becomes_github_url(self):
@@ -41,11 +43,12 @@ class TestResolveAgentUri:
 class TestResolveIdentifier:
     def test_matches_on_name(self):
         lookup = empty_lookup(by_name={"andre van hoorn": "avanhoorn"})
-        assert resolve_identifier(name = "André van Hoorn", email=None, lookup=lookup) == ("avanhoorn", "lookup-name")
+        assert resolve_identifier(name="André van Hoorn", email=None, lookup=lookup) == ("avanhoorn", "lookup-name")
 
     def test_falls_back_to_email(self):
         lookup = empty_lookup(by_email={"nie@informatik.uni-kiel.de": "nils-christian"})
-        assert resolve_identifier("Nils Christian Ehmke", "nie@informatik.uni-kiel.de", lookup) == ("nils-christian", "lookup-email")
+        assert resolve_identifier("Nils Christian Ehmke", "nie@informatik.uni-kiel.de", lookup) == ("nils-christian",
+                                                                                                    "lookup-email")
 
     def test_name_takes_priority_over_email(self):
         lookup = empty_lookup(by_name={"real person": "name-login"},
@@ -55,14 +58,15 @@ class TestResolveIdentifier:
     def test_returns_none_when_both_miss(self):
         assert resolve_identifier("Nobody", "n@x.de", empty_lookup()) == (None, None)
 
+
 class TestMintRegistry:
     def test_mints_deterministic_uri(self):
         r = MintRegistry(BASE)
-        uri = r.mint(slug = "ninamarwede",
-                     name = "Nina Marwede",
-                     email = "nina@x.de",
-                     commit_url = "u1",
-                     role = "author")
+        uri = r.mint(slug="ninamarwede",
+                     name="Nina Marwede",
+                     email="nina@x.de",
+                     commit_url="u1",
+                     role="author")
         assert uri == URIRef(BASE + "ninamarwede")
 
     def test_same_name_and_email_is_not_a_conflict(self):
@@ -130,6 +134,7 @@ class TestMintRegistry:
         r = MintRegistry("http://example.org/a/")
         assert r.mint("x", "X", None, "u1", "author") == URIRef("http://example.org/a/x")
 
+
 class TestProcessSlot:
     def _run(self, name="Nina Marwede", email="nina@x.de", lookup=None, role="author",
              registry=None, base=BASE):
@@ -138,10 +143,10 @@ class TestProcessSlot:
         stats = __import__("collections").defaultdict(int)
         registry = registry or MintRegistry(base)
         method = process_slot(
-            graph = g, commit_url ="https://github.com/o/r/commit/abc",
-            person = person(name, email, None), role = role,
-            lookup = lookup if lookup is not None else empty_lookup(),
-            registry = registry, unresolved = unresolved, stats = stats,
+            graph=g, commit_url="https://github.com/o/r/commit/abc",
+            person=person(name, email, None), role=role,
+            lookup=lookup if lookup is not None else empty_lookup(),
+            registry=registry, unresolved=unresolved, stats=stats,
         )
         return g, unresolved, method, registry
 
@@ -191,7 +196,6 @@ class TestProcessSlot:
         g, _, _, _ = self._run()
         assert (URIRef("https://github.com/o/r/commit/abc"), RDF.type, PROV.Activity) not in g
 
-
     def test_unmintable_name_is_reported_not_resolved(self):
         g, unresolved, method, _ = self._run(name="张伟", email=None)
         assert method is None
@@ -214,6 +218,7 @@ class TestProcessSlot:
         g, unresolved, method, _ = self._run(name=None, email="only@x.de")
         assert method is None
         assert unresolved[0]["reason"] == "name has no slug-able characters"
+
 
 class TestWebUiSlot:
 
@@ -325,7 +330,7 @@ class TestResolverCli:
         assert "false split" in proc.stdout
 
     def test_clean_run_reports_no_disagreements(self, tmp_path):
-        commits =[commit("https://x/commit/1", person("Nina Marwede", "nina@x.de", None))]
+        commits = [commit("https://x/commit/1", person("Nina Marwede", "nina@x.de", None))]
         proc, _, _, _ = self._run(tmp_path, commits, empty_lookup())
         assert "No name/email disagreements" in proc.stdout
 

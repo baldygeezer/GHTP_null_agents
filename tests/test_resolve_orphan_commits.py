@@ -339,3 +339,11 @@ class TestResolverCli:
         g.parse(out_ttl, format="turtle")
         agent = URIRef(BASE + "ninamarwede")
         assert len(list(g.triples((agent, RDF.type, PROV.Agent)))) == 1
+
+    def test_empty_commits_file(self, tmp_path):
+        _, out_ttl, unresolved_path, review_path = self._run(tmp_path, [], empty_lookup())
+        g = Graph()
+        g.parse(out_ttl, format="turtle")
+        assert len(g) == 0
+        assert json.loads(unresolved_path.read_text(encoding="utf-8")) == []
+        assert json.loads(review_path.read_text(encoding="utf-8"))["minted"] == []

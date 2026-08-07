@@ -86,7 +86,7 @@ def kieker_commits():
         ),
         commit(
             "https://github.com/kieker-monitoring/kieker/commit/unknown1",
-            person("Evan Taclue ", "tup@nowhere.de", None),
+            person("Avan Taclue ", "tup@nowhere.de", None),
             message="unresolvable",
         ),
     ]

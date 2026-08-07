@@ -278,3 +278,37 @@ class TestResolverCli:
         g = Graph()
         g.parse(out_ttl, format="turtle")
         assert len(g) > 0
+
+    def test_only_orphan_commits_appear(self, tmp_path, kieker_commits):
+        _, out_ttl, _, _ = self._run(tmp_path, kieker_commits, empty_lookup())
+        g = Graph()
+        g.parse(out_ttl, format="turtle")
+        subjects = {str(s) for s in g.subjects(PROV.qualifiedAssociation, None)}
+        assert "https://github.com/kieker-monitoring/kieker/commit/d69b9a01" not in subjects
+        assert "https://github.com/kieker-monitoring/kieker/commit/25853fd8" in subjects
+
+    def test_previously_unresolvable_person_is_now_minted(self, tmp_path, kieker_commits):
+        # Before minting, "Totally Unknown Person" produced no triples.
+        _, out_ttl, unresolved_path, review_path = self._run(tmp_path, kieker_commits, empty_lookup())
+        g = Graph()
+        g.parse(out_ttl, format="turtle")
+        assert (URIRef(BASE + "avantaclue"), RDF.type, PROV.Agent) in g
+        assert json.loads(unresolved_path.read_text(encoding="utf-8")) == []
+
+    def test_review_file_lists_minted_agents(self, tmp_path, kieker_commits):
+        _, _, _, review_path = self._run(tmp_path, kieker_commits, empty_lookup())
+        review = json.loads(review_path.read_text(encoding="utf-8"))
+        slugs = {m["slug"] for m in review["minted"]}
+        assert "avantaclue" in slugs
+
+    def test_false_merge_is_reported_on_stdout_and_on_disk(self, tmp_path):
+        commits = [
+            commit("https://x/commit/1", person("Nina Marwede", "nina.marwede@uni-oldenburg.de", None)),
+            commit("https://x/commit/2", person("Nina Marwede", "nina.marwede@soton.ac.uk", None)),
+        ]
+        proc, _, _, review_path = self._run(tmp_path, commits, empty_lookup())
+        review = json.loads(review_path.read_text(encoding="utf-8"))
+
+        assert len(review["name_email_conflicts"]) == 1
+        assert "false merge" in proc.stdout
+        assert "ninamarwede" in proc.stdout

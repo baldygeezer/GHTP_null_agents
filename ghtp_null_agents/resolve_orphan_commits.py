@@ -182,9 +182,22 @@ def main():
     stats = {}
 
     for c in commits:
-        process_slot(graph, c["url"], c["commit"]["author"], "author", lookup, registry, unresolved, stats)
+        author = c["commit"]["author"]
+        if author.get("user") is None:
+            process_slot(graph, c["url"], author, "author", lookup, registry, unresolved, stats)
 
     output_path.write_text(graph.serialize(format="turtle"))
+
+    unresolved_path = output_path.parent / f"{output_path.stem}_unresolved.json"
+    unresolved_path.write_text(json.dumps(unresolved, ensure_ascii=False))
+
+    review = registry.review()
+    review_path = output_path.parent / f"{output_path.stem}_review.json"
+    review_path.write_text(json.dumps(review, ensure_ascii=False))
+
+    if review["name_email_conflicts"]:
+        slugs = ", ".join(c["slug"] for c in review["name_email_conflicts"])
+        print(f"{len(review['name_email_conflicts'])} possible false merge(s): {slugs} — see {review_path}")
 
 
 

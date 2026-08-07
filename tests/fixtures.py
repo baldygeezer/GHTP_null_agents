@@ -62,6 +62,7 @@ def kieker_commits():
       - an orphan resolvable only via EMAIL (different name spelling)
       - the resolved commit that makes the above email resolution possible
       - a genuinely unresolvable orphan
+      -
     """
     return [
         commit(
@@ -88,5 +89,11 @@ def kieker_commits():
             "https://github.com/kieker-monitoring/kieker/commit/unknown1",
             person("Avan Taclue ", "tup@nowhere.de", None),
             message="unresolvable",
+        ),
+        commit(
+            "https://github.com/kieker-monitoring/kieker/commit/654321",
+            author=person("Author McAuthorface", "ama@authorland.de", 'authorface'),
+            committer=person("Committer McCommitterface", "cmc@committerrland.de", 'committerface'),
+            message="this involved two people, an author and a commiter",
         ),
     ]

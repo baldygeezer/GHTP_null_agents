@@ -182,9 +182,10 @@ def main():
     stats = {}
 
     for c in commits:
-        author = c["commit"]["author"]
-        if author.get("user") is None:
-            process_slot(graph, c["url"], author, "author", lookup, registry, unresolved, stats)
+        for role in ("author", "committer"):
+            slot = c["commit"][role]
+            if slot.get("user") is None:
+                process_slot(graph, c["url"], slot, role, lookup, registry, unresolved, stats)
 
     output_path.write_text(graph.serialize(format="turtle"))
 

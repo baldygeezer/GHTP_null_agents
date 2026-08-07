@@ -328,3 +328,14 @@ class TestResolverCli:
         commits =[commit("https://x/commit/1", person("Nina Marwede", "nina@x.de", None))]
         proc, _, _, _ = self._run(tmp_path, commits, empty_lookup())
         assert "No name/email disagreements" in proc.stdout
+
+    def test_repeated_agent_is_not_duplicated(self, tmp_path):
+        commits = [
+            commit("https://x/commit/1", person("Nina Marwede", "nina@x.de", None)),
+            commit("https://x/commit/2", person("Nina Marwede", "nina@x.de", None)),
+        ]
+        _, out_ttl, _, _ = self._run(tmp_path, commits, empty_lookup())
+        g = Graph()
+        g.parse(out_ttl, format="turtle")
+        agent = URIRef(BASE + "ninamarwede")
+        assert len(list(g.triples((agent, RDF.type, PROV.Agent)))) == 1

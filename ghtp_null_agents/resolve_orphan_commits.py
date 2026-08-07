@@ -203,6 +203,9 @@ def main():
         emails = ", ".join(c["email"] for c in review["email_name_conflicts"])
         print(f"{len(review['email_name_conflicts'])} possible false split(s): {emails} — see {review_path}")
 
+    if not review["name_email_conflicts"] and not review["email_name_conflicts"]:
+        print("No name/email disagreements found.")
+
 
 
 

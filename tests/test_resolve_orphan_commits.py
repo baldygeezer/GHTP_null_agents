@@ -323,3 +323,8 @@ class TestResolverCli:
 
         assert len(review["email_name_conflicts"]) == 1
         assert "false split" in proc.stdout
+
+    def test_clean_run_reports_no_disagreements(self, tmp_path):
+        commits =[commit("https://x/commit/1", person("Nina Marwede", "nina@x.de", None))]
+        proc, _, _, _ = self._run(tmp_path, commits, empty_lookup())
+        assert "No name/email disagreements" in proc.stdout

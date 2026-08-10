@@ -61,7 +61,6 @@ class TestFullCliWorkflow:
         commits_path= tmp_path / "commits.json"
         commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
         lookup_path= tmp_path / "lookup.json"
-        out_ttl= tmp_path / "orphans.ttl"
         conflicts_path= tmp_path  / "conflicts.json"
         out_ttl = tmp_path / "orphans.ttl"
 

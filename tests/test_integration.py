@@ -132,7 +132,10 @@ class TestFullCliWorkflow:
 
         out_ttl = tmp_path / "orphans.ttl"
         proc = subprocess.run(
-            [sys.executable, str(RESOLVE), "--commits", str(commits_path), "--lookup",str(lookup_path), "--output", str(out_ttl)],
+            [sys.executable, str(RESOLVE),
+                    "--commits", str(commits_path),
+                    "--lookup",str(lookup_path),
+                    "--output", str(out_ttl)],
             capture_output=True, text=True,
         )
         assert proc.returncode == 0, proc.stderr
@@ -146,4 +149,42 @@ class TestFullCliWorkflow:
             "https://github.com/whasselbring",
         }
 
-    
+    def test_rerun_after_filling_gaps_clears_the_unresolved_report(self, tmp_path):
+        """The intended manual loop: run, inspect unresolved, patch the
+        lookup, re-run, get a clean report."""
+        commits = [commit("https://x/commit/1", person("Mystery Person", "mp@x.de", None))]
+        commits_path = tmp_path / "commits.json"
+        commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
+        lookup_path = tmp_path / "lookup.json"
+        out_ttl = tmp_path / "orphans.ttl"
+        unresolved_path = tmp_path / "orphans_unresolved.json"
+
+        review_path = tmp_path / "orphans_review.json"
+
+        lookup_path.write_text(json.dumps({"by_name": {}, "by_email": {}}), encoding="utf-8")
+        subprocess.run(
+            [sys.executable, str(RESOLVE),
+                    "--commits", str(commits_path),
+                    "--lookup", str(lookup_path),
+                    "--output", str(out_ttl)],
+                    capture_output=True, text=True, check=True)
+
+        g = Graph()
+        g.parse(out_ttl, format="turtle")
+        assert (URIRef(DEFAULT_AGENT_BASE + "mysteryperson"), RDF.type, PROV.Agent) in g
+        assert [m["slug"] for m in json.loads(review_path.read_text(encoding="utf-8"))["minted"]] == ["mysteryperson"]
+
+        # Once a GitHub account is discovered and added by hand, the lookup
+        # takes over and nothing is minted for that person any more.
+        lookup_path.write_text(json.dumps({"by_name": {"mystery person": "mystery-login"}, "by_email": {}}),
+                               encoding="utf-8")
+        subprocess.run([sys.executable, str(RESOLVE),
+                        "--commits", str(commits_path),
+                        "--lookup", str(lookup_path),
+                        "--output", str(out_ttl)],
+                        capture_output=True, text=True, check=True)
+        g = Graph();
+        g.parse(out_ttl, format="turtle")
+        assert (URIRef("https://github.com/mystery-login"), RDF.type, PROV.Agent) in g
+        assert (URIRef(DEFAULT_AGENT_BASE + "mysteryperson"), RDF.type, PROV.Agent) not in g
+        assert json.loads(review_path.read_text(encoding="utf-8"))["minted"] == []

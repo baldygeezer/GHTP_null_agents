@@ -106,3 +106,42 @@ class TestFullCliWorkflow:
         # Nobody is left unattributed any more -- the unknown contributor is minted into the agents namespace instead.
         assert json.loads(unresolved_path.read_text(encoding="utf-8")) == []
         assert (URIRef(DEFAULT_AGENT_BASE + "avantaclue"), RDF.type, PROV.Agent) in g
+
+    def test_manual_lookup_entries_survive_and_are_used(self, tmp_path):
+        """
+        Names that can never be auto-resolved get added to lookup.json by
+        hand. Check the three manual value shapes all mint sane URIs.
+        """
+        commits = [
+            commit("https://x/commit/1", person("Nina Marwede", "nina@x.de", None)),
+            commit("https://x/commit/2", person("Pascale Brandt", "pbr@informatik.uni-kiel.de", None)),
+            commit("https://x/commit/3", person("Wilhelm", "wh@x.de", None)),
+        ]
+        commits_path = tmp_path / "commits.json"
+        commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
+
+        lookup_path = tmp_path / "lookup.json"
+        lookup_path.write_text(json.dumps({
+            "by_name": {
+                "nina marwede": "svn:nina",  # synthetic id
+                "pascale brandt": "pbr@informatik.uni-kiel.de",  # email only
+                "wilhelm": "whasselbring",  # github login
+            },
+            "by_email": {},
+        }, ensure_ascii=False), encoding="utf-8")
+
+        out_ttl = tmp_path / "orphans.ttl"
+        proc = subprocess.run(
+            [sys.executable, str(RESOLVE), "--commits", str(commits_path), "--lookup",str(lookup_path), "--output", str(out_ttl)],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 0, proc.stderr
+
+        g = Graph()
+        g.parse(out_ttl, format="turtle")
+        agents = {str(a) for a in g.subjects(RDF.type, PROV.Agent)}
+        assert agents == {
+            "svn:nina",
+            "mailto:pbr@informatik.uni-kiel.de",
+            "https://github.com/whasselbring",
+        }

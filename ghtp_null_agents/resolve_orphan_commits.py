@@ -140,6 +140,12 @@ def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
     if login:
         uri = resolve_agent_uri(login)
         graph.add((uri, RDF.type, PROV.Agent))
+        commit_ref = URIRef(commit_url)
+        graph.add((commit_ref, PROV.wasAssociatedWith, uri))
+        qassoc = BNode()
+        graph.add((commit_ref, PROV.qualifiedAssociation, qassoc))
+        graph.add((qassoc, PROV.agent, uri))
+        graph.add((qassoc, PROV.hadRole, G2P[role]))
         return method
     # here be dragons - if we get here then there's no match, so we make unique if for the Agent
     slug = mint_id_from_name(person.get("name")) if person.get("name") else ""

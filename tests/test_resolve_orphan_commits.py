@@ -227,6 +227,53 @@ class TestProcessSlot:
         assert method is None
         assert unresolved[0]["reason"] == "name has no slug-able characters"
 
+    def test_by_name_resolved_commit_was_associated(self, kieker_commits):
+        lookup = empty_lookup(by_name={"andre van hoorn": "avanhoorn"})
+        g, _, method, _ = self._run(lookup=lookup, name="andre van hoorn", email="avh@dgrd.de", role="committer")
+        commit_uri = URIRef("https://github.com/o/r/commit/abc")
+        agent = URIRef("https://github.com/avanhoorn")
+        assert (commit_uri, PROV.wasAssociatedWith, agent) in g
+
+    def test_by_email_resolved_commit_was_associated(self, kieker_commits):
+        lookup = empty_lookup(by_email={"avh@dgrd.de": "avanhoorn"})
+        g, _, method, _ = self._run(lookup=lookup, name="andre van hoorn", email="avh@dgrd.de", role="committer")
+        commit_uri = URIRef("https://github.com/o/r/commit/abc")
+        agent = URIRef("https://github.com/avanhoorn")
+        assert (commit_uri, PROV.wasAssociatedWith, agent) in g
+
+    def test_by_name_resolved_commit_was_q_associated(self, kieker_commits):
+        lookup = empty_lookup(by_name={"andre van hoorn": "avanhoorn"})
+        g, _, method, _ = self._run(lookup=lookup, name="andre van hoorn", email="avh@dgrd.de", role="committer")
+        commit_uri = URIRef("https://github.com/o/r/commit/abc")
+        agent = URIRef("https://github.com/avanhoorn")
+        q_assoc = g.value(commit_uri, PROV.qualifiedAssociation)
+        assert (commit_uri, PROV.qualifiedAssociation, q_assoc) in g
+        assert (q_assoc, PROV.agent, agent) in g
+
+    def test_by_email_resolved_commit_was_q_associated(self, kieker_commits):
+        lookup = empty_lookup(by_email={"avh@dgrd.de": "avanhoorn"})
+        g, _, method, _ = self._run(lookup=lookup, name="andre van hoorn", email="avh@dgrd.de", role="committer")
+        commit_uri = URIRef("https://github.com/o/r/commit/abc")
+        agent = URIRef("https://github.com/avanhoorn")
+        q_assoc = g.value(commit_uri, PROV.qualifiedAssociation)
+        assert (commit_uri, PROV.qualifiedAssociation, q_assoc) in g
+        assert (q_assoc, PROV.agent, agent) in g
+
+    @pytest.mark.parametrize("role", ["author", "committer"])
+    def test_by_name_resolved_commit_has_role(self, role):
+        lookup = empty_lookup(by_name={"andre van hoorn": "avanhoorn"})
+        g, _, method, _ = self._run(lookup=lookup, name="andre van hoorn", email="avh@dgrd.de", role=role)
+        commit_uri = URIRef("https://github.com/o/r/commit/abc")
+        q_assoc = g.value(commit_uri, PROV.qualifiedAssociation)
+        assert (q_assoc, PROV.hadRole, G2P[role]) in g
+
+    @pytest.mark.parametrize("role", ["author", "committer"])
+    def test_by_email_resolved_commit_has_role(self, role):
+        lookup = empty_lookup(by_email={"avh@dgrd.de": "avanhoorn"})
+        g, _, method, _ = self._run(lookup=lookup, name="andre van hoorn", email="avh@dgrd.de", role=role)
+        commit_uri = URIRef("https://github.com/o/r/commit/abc")
+        q_assoc = g.value(commit_uri, PROV.qualifiedAssociation)
+        assert (q_assoc, PROV.hadRole, G2P[role]) in g
 
 class TestWebUiSlot:
 

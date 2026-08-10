@@ -188,3 +188,8 @@ class TestFullCliWorkflow:
         assert (URIRef("https://github.com/mystery-login"), RDF.type, PROV.Agent) in g
         assert (URIRef(DEFAULT_AGENT_BASE + "mysteryperson"), RDF.type, PROV.Agent) not in g
         assert json.loads(review_path.read_text(encoding="utf-8"))["minted"] == []
+
+    def test_empty_commits_file_produces_empty_output(self, tmp_path):
+        _, _, g, unresolved_path = self._workflow(tmp_path, [])
+        assert len(g) == 0
+        assert json.loads(unresolved_path.read_text(encoding="utf-8")) == []

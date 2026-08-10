@@ -193,3 +193,14 @@ class TestFullCliWorkflow:
         _, _, g, unresolved_path = self._workflow(tmp_path, [])
         assert len(g) == 0
         assert json.loads(unresolved_path.read_text(encoding="utf-8")) == []
+
+    def test_repo_with_no_user_keys_yields_empty_lookup(self, tmp_path):
+        """A commits.json that never went through user resolution can't bootstrap itself. Every name ends up in the
+        unresloved report."""
+        commits = [commit("https://x/commit/1", person("Someone", "s@x.de"), omit_user_key=True)]
+        _, _, g, unresolved_path = self._workflow(tmp_path, commits)
+
+        # No user keys means nothing to harvest, so the lookup is empty and every contributor is minted rather than
+        # resolved to an account.
+        assert (URIRef(DEFAULT_AGENT_BASE + "someone"), RDF.type, PROV.Agent) in g
+        assert json.loads(unresolved_path.read_text(encoding="utf-8")) == []

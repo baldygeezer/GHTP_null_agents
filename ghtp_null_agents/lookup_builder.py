@@ -55,8 +55,22 @@ class LookupBuilder:
         return name_conflicts + email_conflicts
 
 
+def _harvest_known_logins(commits):
+    known_logins = {}
+    for commit in commits:
+        for role in ("author", "committer"):
+            actor = commit.get("commit", {}).get(role)
+            if actor is None:
+                continue
+            login = extract_login(actor.get("user"))
+            if login:
+                known_logins.setdefault(normalise_name(login), login)
+    return known_logins
+
+
 def process_commits(commits, builder):
     counts = {"author": 0, "committer": 0}
+    known_logins = _harvest_known_logins(commits)
 
     for commit in commits:
         for role in counts:
@@ -64,6 +78,9 @@ def process_commits(commits, builder):
             if actor is None:
                 continue
             login = extract_login(actor.get("user"))
+            if not login:
+                name = actor.get("name")
+                login = known_logins.get(normalise_name(name)) if name else None
             if not login:
                 continue
             builder.add(name=actor.get("name"),

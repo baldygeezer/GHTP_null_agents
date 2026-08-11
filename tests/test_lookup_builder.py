@@ -154,6 +154,18 @@ class TestProcessCommits:
         assert (n_author, n_committer) == (1, 1)
         assert b.by_name["andre van hoorn"] == "avanhoorn"
 
+    def test_login_used_as_name_records_as_login(self):
+        b = LookupBuilder()
+        commits = [commit("u1", person("Andre van Hoorn", "avh@x.de", user= user_json("AvanHoorn"))),
+                   commit("u2", person(name="avanhoorn", email = "ah@x.de", user = user_json(login=None))),
+                   commit("u4", person(name="johnsmith", email="js@x.de", user=user_json(login=None))),
+                   commit("u3", person("john Smith", "jas@x.de", user=user_json("johnsmith"))),
+                   ]
+        process_commits(commits, b)
+
+        assert b.by_name["avanhoorn"] == "AvanHoorn"
+        assert b.by_name["johnsmith"] == "johnsmith"
+
     def test_skips_null_users(self):
         b = LookupBuilder()
         commits = [commit("u1", person("Orphan Person", "o@x.de", None))]

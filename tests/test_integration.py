@@ -107,6 +107,45 @@ class TestFullCliWorkflow:
         assert json.loads(unresolved_path.read_text(encoding="utf-8")) == []
         assert (URIRef(DEFAULT_AGENT_BASE + "avantaclue"), RDF.type, PROV.Agent) in g
 
+    def test_resolutions_are_as_expected(self, tmp_path):
+        """
+        A sanity chack to make sure the looksups are built correctly
+        """
+        commits = [
+            commit("https://x/commit/1", person("Nina Marwede", "nina@x.de", None)),
+            commit("https://x/commit/2", person("Ada Lovelace", "ada@informatik.uni-kiel.de", user_json(login="AdaL"))),
+            commit("https://x/commit/3", person("AdaL", "al@x.de", None)),
+            commit("https://x/commit/4", person("Pascale Brandt", "pb@x.de", user_json(login="PascaleBrandt"))),
+            commit("https://x/commit/5", person("PascaleBrandt", "pbr@informatik.uni-kiel.de", None)),
+            commit("https://x/commit/6", person("Wilhelm", "wh@x.de", None)),
+        ]
+        commits_path = tmp_path / "commits.json"
+        commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
+
+        lookup_path = tmp_path / "lookup.json"
+        build= subprocess.run(
+            [sys.executable, str(BUILD), "--commits", str(commits_path), "--lookup",str(lookup_path)],
+            capture_output = True, text=True,
+        )
+
+        out_ttl = tmp_path / "orphans.ttl"
+        proc = subprocess.run(
+            [sys.executable, str(RESOLVE),
+                    "--commits", str(commits_path),
+                    "--lookup",str(lookup_path),
+                    "--output", str(out_ttl)],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 0, proc.stderr
+
+        g = Graph()
+        g.parse(out_ttl, format="turtle")
+        agents = {str(a) for a in g.subjects(RDF.type, PROV.Agent)}
+        assert agents == {'http://soton.ac.uk/pars/agents/ninamarwede',
+                          'https://github.com/PascaleBrandt',
+                          'http://soton.ac.uk/pars/agents/wilhelm',
+                          'https://github.com/AdaL'}
+
     def test_manual_lookup_entries_survive_and_are_used(self, tmp_path):
         """
         Names that can never be auto-resolved get added to lookup.json by

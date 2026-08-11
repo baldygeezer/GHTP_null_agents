@@ -20,7 +20,7 @@ class TestExtractLogin:
         ("avanhoorn"),
         ("baldygeezer"), ])
     def test_plain_login_string_is_rejected(self, login):
-        # we should see logins being checked. If we do something is wrong, and we don't want to be assigning a login to
+        # we shouldn't see logins being checked. If we do something is wrong, and we don't want to be assigning a login to
         # anything so it should return none
         assert extract_login(login) is None
 

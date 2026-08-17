@@ -344,3 +344,56 @@ class TestBuilderCli:
         )
         assert proc.returncode == 0, proc.stderr
         assert "william ellard" in Path(tmp_path / LOOKUP_PATH).read_text(encoding="utf-8")
+
+    def test_existing_lookup_is_appended(self, tmp_path):
+        commits_path = tmp_path / COMMITS_PATH
+        commits_path.parent.mkdir(parents=True, exist_ok=True)
+        commits = [
+            commit("u1", person("William Ellard", "w.ellerd@x.de", user_json("login-one"))),
+            commit("u2", person("Chris Peacock", "CPK@x.de", user_json("login-two"))),
+        ]
+        commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), "--commits", str(commits_path)],
+            capture_output=True, text=True, cwd=tmp_path,
+        )
+        assert proc.returncode == 0, proc.stderr
+
+        commits = [
+            commit("u1", person("Ophelia Angst ", "oan@x.de", user_json("login-one"))),
+            commit("u2", person("Chris P Bacon", "cpb@x.de", user_json("login-two"))),
+        ]
+        commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), "--commits", str(commits_path)],
+            capture_output=True, text=True, cwd=tmp_path,
+        )
+        assert "william ellard" in Path(tmp_path / LOOKUP_PATH).read_text(encoding="utf-8")
+
+    def test_existing_lookup_is_appended_with_no_dupes(self, tmp_path):
+        commits_path = tmp_path / COMMITS_PATH
+        commits_path.parent.mkdir(parents=True, exist_ok=True)
+        commits = [
+            commit("u1", person("William Ellard", "w.ellerd@x.de", user_json("login-one"))),
+            commit("u2", person("Chris Peacock", "CPK@x.de", user_json("login-three"))),
+        ]
+        commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), "--commits", str(commits_path)],
+            capture_output=True, text=True, cwd=tmp_path,
+        )
+        assert proc.returncode == 0, proc.stderr
+
+        commits = [
+            commit("u1", person("Ophelia Angst ", "oan@x.de", user_json("login-three"))),
+            commit("u2", person("Chris P Bacon", "cpb@x.de", user_json("login-four"))),
+            commit("u1", person("William Ellard", "w.ellerd@x.de", user_json("login-one"))),
+        ]
+        commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), "--commits", str(commits_path)],
+            capture_output=True, text=True, cwd=tmp_path,
+        )
+        lookup=Path(tmp_path / LOOKUP_PATH).read_text(encoding="utf-8")
+        count = lookup.count("william ellard")
+        assert count == 1

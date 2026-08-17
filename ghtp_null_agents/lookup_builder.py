@@ -105,6 +105,10 @@ def main():
 
     commits = json.loads(commits_path.read_text(encoding="utf-8"))
     builder = LookupBuilder()
+    if lookup_path.exists():
+        existing = json.loads(lookup_path.read_text(encoding="utf-8"))
+        builder.by_name.update(existing.get("by_name", {}))
+        builder.by_email.update(existing.get("by_email", {}))
     process_commits(commits, builder)
 
     lookup_path.write_text(

@@ -8,7 +8,7 @@ import pytest
 from rdflib import URIRef, Graph, RDF, PROV, RDFS, Literal
 
 from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier, \
-    MintRegistry, process_slot, G2P, WEB_UI_SLUG, parse_args, get_commits_path, get_lookup_path
+    MintRegistry, process_slot, G2P, WEB_UI_SLUG, parse_args, get_commits_path, get_lookup_path, get_output_path
 
 from tests.fixtures import commit, person, kieker_commits
 
@@ -465,6 +465,28 @@ class TestResolverCli:
         ns = parse_args(["--folder", str(folder_path)])
         assert get_lookup_path(ns) == folder_lookup_path
 
+    def test_folder_arg_names_result_from_subfolder(self, tmp_path, kieker_commits):
+        folder_name = "somefolder"
+        repo_folder_name = "some_repofolder"
+        folder_path = tmp_path / folder_name
+        folder_path.mkdir()
+        subfolder_path = folder_path / repo_folder_name
+        subfolder_path.mkdir()
+        folder_result_path = subfolder_path / "some_repofolder.ttl"
+
+        ns = parse_args(["--folder", str(folder_path)])
+        assert get_output_path(ns) == folder_result_path
+
+
+
+    # def test_folder_arg_processes_all_subfolders(self,tmp_path,kieker_commits):
+    #     folder_name = "somefolder"
+    #     folder_path = tmp_path / folder_name
+    #     folder_path.mkdir()
+    #     for i in range(10):
+    #         repo_folder_name = f"some_repofolder_{i}"
+    #         subfolder_path = folder_path / repo_folder_name
+    #         subfolder_path.mkdir()
 
 
 

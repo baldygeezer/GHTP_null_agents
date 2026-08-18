@@ -208,6 +208,9 @@ def get_lookup_path(ns: argparse.Namespace) -> Path:
     return Path(ns.lookup)
 
 def get_output_path(ns: argparse.Namespace) -> Path:
+    if ns.folder is not None:
+        subfolder = next(p for p in Path(ns.folder).iterdir() if p.is_dir())
+        return subfolder / f"{subfolder.name}.ttl"
     return Path(ns.output)
 
 

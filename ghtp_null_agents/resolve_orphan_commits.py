@@ -203,6 +203,8 @@ def get_commits_path(ns: argparse.Namespace) -> Path:
     return Path(ns.commits)
 
 def get_lookup_path(ns: argparse.Namespace) -> Path:
+    if ns.folder is not None:
+        return next(Path(ns.folder).glob("*/lookup.json"))
     return Path(ns.lookup)
 
 def get_output_path(ns: argparse.Namespace) -> Path:

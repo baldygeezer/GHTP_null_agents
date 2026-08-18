@@ -197,15 +197,26 @@ def parse_args(args) ->argparse.Namespace:
     return ns
 
 
+def get_commits_path(ns: argparse.Namespace) -> Path:
+    return Path(ns.commits)
+
+def get_lookup_path(ns: argparse.Namespace) -> Path:
+    return Path(ns.lookup)
+
+def get_output_path(ns: argparse.Namespace) -> Path:
+    return Path(ns.output)
 
 
 
 def main():
     ns = parse_args(sys.argv[1:])
+    commits_path = get_commits_path(ns)
+    lookup_path = get_lookup_path(ns)
+    output = get_output_path(ns)
 
-    commits = json.loads(Path(ns.commits).read_text(encoding="utf-8"))
-    lookup = json.loads(Path(ns.lookup).read_text(encoding="utf-8"))
-    output_path = Path(ns.output)
+    commits = json.loads(commits_path.read_text(encoding="utf-8"))
+    lookup = json.loads(lookup_path.read_text(encoding="utf-8"))
+    output_path = output
 
     graph = Graph()
     registry = MintRegistry(DEFAULT_AGENT_BASE)

@@ -8,7 +8,8 @@ import pytest
 from rdflib import URIRef, Graph, RDF, PROV, RDFS, Literal
 
 from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier, \
-    MintRegistry, process_slot, G2P, WEB_UI_SLUG, parse_args
+    MintRegistry, process_slot, G2P, WEB_UI_SLUG, parse_args, get_commits_path
+
 from tests.fixtures import commit, person, kieker_commits
 
 SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "resolve_orphan_commits.py"
@@ -440,19 +441,20 @@ class TestResolverCli:
 
 
 
-    def test_folder_arg_loads_from_subfolder(self,tmp_path,kieker_commits):
-        folder_path = tmp_path / "somefolder"
+    def test_folder_arg_loads_commits_from_subfolder(self,tmp_path,kieker_commits):
+        folder_name = "somefolder"
+        repo_folder_name = "some_repofolder"
+        folder_path = tmp_path / folder_name
         folder_path.mkdir()
-        subfolder_path = folder_path / "some_repofolder"
+        subfolder_path = folder_path / repo_folder_name
         subfolder_path.mkdir()
         folder_commits_path = subfolder_path / "commits.json"
         folder_commits_path.write_text(json.dumps(kieker_commits, ensure_ascii=False), encoding="utf-8")
+        ns = parse_args(["--folder", str(folder_path)])
+        assert get_commits_path(ns) == folder_commits_path
 
-        folder_lookup_path = subfolder_path / "lookup.json"
-        folder_lookup_path.write_text(json.dumps(empty_lookup(), ensure_ascii=False), encoding="utf-8")
-        output = tmp_path / "orphans.ttl"
 
-    #
+
 
 
 

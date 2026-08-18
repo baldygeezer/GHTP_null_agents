@@ -1,13 +1,14 @@
 import json
 import subprocess
 import sys
+from logging import raiseExceptions
 from pathlib import Path
 
 import pytest
 from rdflib import URIRef, Graph, RDF, PROV, RDFS, Literal
 
 from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier, \
-    MintRegistry, process_slot, G2P, WEB_UI_SLUG
+    MintRegistry, process_slot, G2P, WEB_UI_SLUG, parse_args
 from tests.fixtures import commit, person, kieker_commits
 
 SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "resolve_orphan_commits.py"
@@ -417,3 +418,41 @@ class TestResolverCli:
         assert len(g) == 0
         assert json.loads(unresolved_path.read_text(encoding="utf-8")) == []
         assert json.loads(review_path.read_text(encoding="utf-8"))["minted"] == []
+
+
+
+
+    def test_folder_arg_raises_error_with_other_args(self, tmp_path):
+        with pytest.raises(ValueError):
+            ns = parse_args(["--folder", "somefolder", "--commits", str(tmp_path), "--output", str(tmp_path),"--lookup", str(tmp_path)])
+        with pytest.raises(ValueError):
+            ns = parse_args(["--folder", "somefolder", "--commits", str(tmp_path), "--output", str(tmp_path)])
+        with pytest.raises(ValueError):
+            ns = parse_args(["--folder", "somefolder", "--commits", str(tmp_path)])
+        with pytest.raises(ValueError):
+            ns = parse_args(["--folder", "somefolder", "--lookup", str(tmp_path)])
+        with pytest.raises(ValueError):
+            ns = parse_args(["--folder", "somefolder", "--lookup", str(tmp_path), "--output", str(tmp_path)])
+
+        ns = parse_args(["--folder", "somefolder"])
+        assert ns.folder == "somefolder"
+
+
+
+
+    def test_folder_arg_loads_from_subfolder(self,tmp_path,kieker_commits):
+        folder_path = tmp_path / "somefolder"
+        folder_path.mkdir()
+        subfolder_path = folder_path / "some_repofolder"
+        subfolder_path.mkdir()
+        folder_commits_path = subfolder_path / "commits.json"
+        folder_commits_path.write_text(json.dumps(kieker_commits, ensure_ascii=False), encoding="utf-8")
+
+        folder_lookup_path = subfolder_path / "lookup.json"
+        folder_lookup_path.write_text(json.dumps(empty_lookup(), ensure_ascii=False), encoding="utf-8")
+        output = tmp_path / "orphans.ttl"
+
+    #
+
+
+

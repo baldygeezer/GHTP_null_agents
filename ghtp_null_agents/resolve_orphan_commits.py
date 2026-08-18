@@ -1,6 +1,7 @@
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 
 from rdflib import URIRef, Graph, Literal, BNode, Namespace
@@ -175,12 +176,32 @@ def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
     return "minted"
 
 
-def main():
+def parse_args(args) ->argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--commits", default=str(COMMITS_PATH))
-    parser.add_argument("--lookup", default=str(LOOKUP_PATH))
-    parser.add_argument("--output", default=str(OUTPUT_PATH))
-    ns = parser.parse_args()
+    parser.add_argument("--commits", default=None)
+    parser.add_argument("--lookup", default=None)
+    parser.add_argument("--output", default=None)
+    parser.add_argument("--folder", default=None)
+    ns = parser.parse_args(args)
+
+    if ns.folder is not None and (ns.commits is not None or ns.lookup is not None or ns.output is not None):
+        raise ValueError("--folder cannot be combined with --commits, --lookup, or --output")
+
+    if ns.commits is None:
+        ns.commits = str(COMMITS_PATH)
+    if ns.lookup is None:
+        ns.lookup = str(LOOKUP_PATH)
+    if ns.output is None:
+        ns.output = str(OUTPUT_PATH)
+
+    return ns
+
+
+
+
+
+def main():
+    ns = parse_args(sys.argv[1:])
 
     commits = json.loads(Path(ns.commits).read_text(encoding="utf-8"))
     lookup = json.loads(Path(ns.lookup).read_text(encoding="utf-8"))

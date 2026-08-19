@@ -318,6 +318,14 @@ class TestWebUiSlot:
 
 class TestResolverCli:
 
+    def _run_folder(self,tmp_path, folder:str):
+        proc=subprocess.run(
+            [sys.executable, str(SCRIPT), "--folder", str(tmp_path / folder)],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 0, proc.stderr
+        return proc, tmp_path / folder
+
     def _run(self, tmp_path, commits, lookup, extra=()):
         commits_path = tmp_path / "commits.json"
         commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")

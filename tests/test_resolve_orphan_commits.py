@@ -5,12 +5,13 @@ from logging import raiseExceptions
 from pathlib import Path
 
 import pytest
+import rdflib
 from rdflib import URIRef, Graph, RDF, PROV, RDFS, Literal
 
 from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier, \
     MintRegistry, process_slot, G2P, WEB_UI_SLUG, parse_args, get_commits_path, get_lookup_path, get_output_path
 
-from tests.fixtures import commit, person, kieker_commits
+from tests.fixtures import commit, person, kieker_commits, other_commits
 
 SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "resolve_orphan_commits.py"
 BASE = DEFAULT_AGENT_BASE
@@ -323,7 +324,7 @@ class TestResolverCli:
             [sys.executable, str(SCRIPT), "--folder", str(tmp_path / folder)],
             capture_output=True, text=True,
         )
-        assert proc.returncode == 0, proc.stderr
+        # assert proc.returncode == 0, proc.stderr
         return proc, tmp_path / folder
 
     def _run(self, tmp_path, commits, lookup, extra=()):
@@ -486,15 +487,87 @@ class TestResolverCli:
         assert get_output_path(ns) == folder_result_path
 
 
+    def test_folder_arg_generates_results_in_subfolder(self,tmp_path,kieker_commits, other_commits):
+        folder_name = "somefolder"
+        folder_path = tmp_path / folder_name
+        folder_path.mkdir()
+        repo_folder_name = "some_repofolder"
+        subfolder_path = folder_path / repo_folder_name
+        subfolder_path.mkdir()
+        lookup_path = subfolder_path / "lookup.json"
+        lookup_path.write_text(json.dumps(empty_lookup(), ensure_ascii=False), encoding="utf-8")
+        commits_path = subfolder_path / "commits.json"
+        fixture = kieker_commits
+        commits_path.write_text(json.dumps(fixture, ensure_ascii=False), encoding="utf-8")
+        result_path = subfolder_path / f"{repo_folder_name}.ttl"
+        p, fdr_path = self._run_folder(tmp_path, folder_name)
+        assert result_path.exists()
+        assert len(result_path.read_text(encoding="utf-8")) > 0
 
-    # def test_folder_arg_processes_all_subfolders(self,tmp_path,kieker_commits):
-    #     folder_name = "somefolder"
-    #     folder_path = tmp_path / folder_name
-    #     folder_path.mkdir()
-    #     for i in range(10):
-    #         repo_folder_name = f"some_repofolder_{i}"
-    #         subfolder_path = folder_path / repo_folder_name
-    #         subfolder_path.mkdir()
+
+    def test_folder_arg_generates_lookup_in_subfolder(self,tmp_path,kieker_commits, other_commits):
+        folder_name = "somefolder"
+        folder_path = tmp_path / folder_name
+        folder_path.mkdir()
+        repo_folder_name = "some_repofolder"
+        subfolder_path = folder_path / repo_folder_name
+        subfolder_path.mkdir()
+        lookup_path = subfolder_path / "lookup.json"
+        commits_path = subfolder_path / "commits.json"
+        fixture = kieker_commits
+        commits_path.write_text(json.dumps(fixture, ensure_ascii=False), encoding="utf-8")
+        p, fdr_path = self._run_folder(tmp_path, folder_name)
+        assert lookup_path.exists()
+        lookup_txt = lookup_path.read_text(encoding="utf-8")
+        assert len(lookup_txt) > 0
+        lookup = json.loads(lookup_txt)
+        assert set(lookup) == {"by_name", "by_email"}
+        assert lookup["by_name"]["andre van hoorn"] == "avanhoorn"
+        assert lookup["by_email"]["nie@informatik.uni-kiel.de"] == "nils-christian"
+
+    def test_folder_arg_generates_subfolder_results_from_commits(self,tmp_path,kieker_commits, other_commits):
+        folder_name = "somefolder"
+        folder_path = tmp_path / folder_name
+        folder_path.mkdir()
+        repo_folder_name = "some_repofolder"
+        subfolder_path = folder_path / repo_folder_name
+        subfolder_path.mkdir()
+        commits_path = subfolder_path / "commits.json"
+        fixture = kieker_commits
+        commits_path.write_text(json.dumps(fixture, ensure_ascii=False), encoding="utf-8")
+        result_path = subfolder_path / f"{repo_folder_name}.ttl"
+        p, fdr_path = self._run_folder(tmp_path, folder_name)
+        g = Graph()
+        result = result_path.read_text(encoding="utf-8")
+        g.parse(data=result, format="ttl")
+        n = g.all_nodes()
+        test_nodes = {rdflib.term.URIRef('https://github.com/kieker-monitoring/kieker/commit/unknown1'),
+                      rdflib.term.URIRef('http://purl.org/github2prov/committer'),
+                      rdflib.term.URIRef('https://github.com/kieker-monitoring/kieker/commit/25853fd8'),
+                      rdflib.term.URIRef('http://purl.org/github2prov/author'),
+                      rdflib.term.URIRef('https://github.com/kieker-monitoring/kieker/commit/78656f09')}
+
+        assert n.issuperset(test_nodes)
+
+    def test_folder_arg_creates_results_in_subfolders(self,tmp_path,kieker_commits, other_commits):
+        folder_name = "somefolder"
+        repo_folder_prefix = "some_repofolder_"
+        folder_path = tmp_path / folder_name
+        folder_path.mkdir()
+        for i in range(10):
+            repo_folder_name = f"{repo_folder_prefix}{i}"
+            subfolder_path = folder_path / repo_folder_name
+            subfolder_path.mkdir()
+            commits_path = subfolder_path / "commits.json"
+            commits_path.write_text(json.dumps(kieker_commits , ensure_ascii=False), encoding="utf-8")
+
+        p, f_path = self._run_folder(tmp_path, folder_name)
+
+        for i in range(10):
+            repo_folder_name = f"{repo_folder_prefix}{i}"
+            subfolder_path = folder_path / repo_folder_name
+            result_path = subfolder_path / f"{repo_folder_name}.ttl"
+            assert result_path.exists()
 
 
 

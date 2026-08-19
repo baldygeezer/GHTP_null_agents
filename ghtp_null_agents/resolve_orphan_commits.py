@@ -7,7 +7,7 @@ from pathlib import Path
 from rdflib import URIRef, Graph, Literal, BNode, Namespace
 from rdflib.namespace import RDF, RDFS
 
-from ghtp_null_agents.lookup_builder import COMMITS_PATH, LOOKUP_PATH
+from ghtp_null_agents.lookup_builder import COMMITS_PATH, LOOKUP_PATH, LookupBuilder, process_commits
 from ghtp_null_agents.normalise_names import normalise_name, normalise_email, mint_id_from_name
 
 DEFAULT_AGENT_BASE = "http://soton.ac.uk/pars/agents/"
@@ -197,33 +197,37 @@ def parse_args(args) ->argparse.Namespace:
     return ns
 
 
+def _get_repo_subfolder(ns: argparse.Namespace) -> Path:
+    return next(p for p in Path(ns.folder).iterdir() if p.is_dir())
+
 def get_commits_path(ns: argparse.Namespace) -> Path:
     if ns.folder is not None:
-        return next(Path(ns.folder).glob("*/commits.json"))
+        return _get_repo_subfolder(ns) / "commits.json"
     return Path(ns.commits)
 
 def get_lookup_path(ns: argparse.Namespace) -> Path:
     if ns.folder is not None:
-        return next(Path(ns.folder).glob("*/lookup.json"))
+        return _get_repo_subfolder(ns) / "lookup.json"
     return Path(ns.lookup)
 
 def get_output_path(ns: argparse.Namespace) -> Path:
     if ns.folder is not None:
-        subfolder = next(p for p in Path(ns.folder).iterdir() if p.is_dir())
+        subfolder = _get_repo_subfolder(ns)
         return subfolder / f"{subfolder.name}.ttl"
     return Path(ns.output)
 
 
 
-def main():
-    ns = parse_args(sys.argv[1:])
-    commits_path = get_commits_path(ns)
-    lookup_path = get_lookup_path(ns)
-    output = get_output_path(ns)
-
+def process_repo(commits_path: Path, lookup_path: Path, output_path: Path):
     commits = json.loads(commits_path.read_text(encoding="utf-8"))
-    lookup = json.loads(lookup_path.read_text(encoding="utf-8"))
-    output_path = output
+
+    if not lookup_path.exists():
+        builder = LookupBuilder()
+        process_commits(commits, builder)
+        lookup = {"by_name": builder.by_name, "by_email": builder.by_email}
+        lookup_path.write_text(json.dumps(lookup, ensure_ascii=False))
+    else:
+        lookup = json.loads(lookup_path.read_text(encoding="utf-8"))
 
     graph = Graph()
     registry = MintRegistry(DEFAULT_AGENT_BASE)
@@ -255,6 +259,21 @@ def main():
 
     if not review["name_email_conflicts"] and not review["email_name_conflicts"]:
         print("No name/email disagreements found.")
+
+
+def main():
+    ns = parse_args(sys.argv[1:])
+
+    if ns.folder is not None:
+        for subfolder in sorted(p for p in Path(ns.folder).iterdir() if p.is_dir()):
+            commits_path = subfolder / "commits.json"
+            if not commits_path.exists():
+                continue
+            lookup_path = subfolder / "lookup.json"
+            output_path = subfolder / f"{subfolder.name}.ttl"
+            process_repo(commits_path, lookup_path, output_path)
+    else:
+        process_repo(get_commits_path(ns), get_lookup_path(ns), get_output_path(ns))
 
 
 

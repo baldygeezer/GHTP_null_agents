@@ -1,7 +1,6 @@
 import json
 import subprocess
 import sys
-from logging import raiseExceptions
 from pathlib import Path
 
 import pytest
@@ -10,7 +9,6 @@ from rdflib import URIRef, Graph, RDF, PROV, RDFS, Literal
 
 from ghtp_null_agents.resolve_orphan_commits import resolve_agent_uri, DEFAULT_AGENT_BASE, resolve_identifier, \
     MintRegistry, process_slot, G2P, WEB_UI_SLUG, parse_args, get_commits_path, get_lookup_path, get_output_path
-
 from tests.fixtures import commit, person, kieker_commits, other_commits
 
 SCRIPT = Path(__file__).resolve().parent.parent / "ghtp_null_agents" / "resolve_orphan_commits.py"
@@ -278,6 +276,7 @@ class TestProcessSlot:
         q_assoc = g.value(commit_uri, PROV.qualifiedAssociation)
         assert (q_assoc, PROV.hadRole, G2P[role]) in g
 
+
 class TestWebUiSlot:
 
     def _run(self, role="committer", name="GitHub", email="noreply@github.com"):
@@ -319,8 +318,8 @@ class TestWebUiSlot:
 
 class TestResolverCli:
 
-    def _run_folder(self,tmp_path, folder:str):
-        proc=subprocess.run(
+    def _run_folder(self, tmp_path, folder: str):
+        proc = subprocess.run(
             [sys.executable, str(SCRIPT), "--folder", str(tmp_path / folder)],
             capture_output=True, text=True,
         )
@@ -371,10 +370,8 @@ class TestResolverCli:
         g = Graph()
         g.parse(out_ttl, format="turtle")
         triples = list(g.objects(None, PROV.hadRole))
-        assert  G2P["committer"] in triples
+        assert G2P["committer"] in triples
         assert G2P["author"] in triples
-
-
 
     def test_review_file_lists_minted_agents(self, tmp_path, kieker_commits):
         _, _, _, review_path = self._run(tmp_path, kieker_commits, empty_lookup())
@@ -429,12 +426,11 @@ class TestResolverCli:
         assert json.loads(unresolved_path.read_text(encoding="utf-8")) == []
         assert json.loads(review_path.read_text(encoding="utf-8"))["minted"] == []
 
-
-
-
     def test_folder_arg_raises_error_with_other_args(self, tmp_path):
         with pytest.raises(ValueError):
-            ns = parse_args(["--folder", "somefolder", "--commits", str(tmp_path), "--output", str(tmp_path),"--lookup", str(tmp_path)])
+            ns = parse_args(
+                ["--folder", "somefolder", "--commits", str(tmp_path), "--output", str(tmp_path), "--lookup",
+                 str(tmp_path)])
         with pytest.raises(ValueError):
             ns = parse_args(["--folder", "somefolder", "--commits", str(tmp_path), "--output", str(tmp_path)])
         with pytest.raises(ValueError):
@@ -447,10 +443,7 @@ class TestResolverCli:
         ns = parse_args(["--folder", "somefolder"])
         assert ns.folder == "somefolder"
 
-
-
-
-    def test_folder_arg_loads_commits_from_subfolder(self,tmp_path,kieker_commits):
+    def test_folder_arg_loads_commits_from_subfolder(self, tmp_path, kieker_commits):
         folder_name = "somefolder"
         repo_folder_name = "some_repofolder"
         folder_path = tmp_path / folder_name
@@ -462,7 +455,7 @@ class TestResolverCli:
         ns = parse_args(["--folder", str(folder_path)])
         assert get_commits_path(ns) == folder_commits_path
 
-    def test_folder_arg_loads_lookup_from_subfolder(self,tmp_path,kieker_commits):
+    def test_folder_arg_loads_lookup_from_subfolder(self, tmp_path, kieker_commits):
         folder_name = "somefolder"
         repo_folder_name = "some_repofolder"
         folder_path = tmp_path / folder_name
@@ -486,8 +479,7 @@ class TestResolverCli:
         ns = parse_args(["--folder", str(folder_path)])
         assert get_output_path(ns) == folder_result_path
 
-
-    def test_folder_arg_generates_results_in_subfolder(self,tmp_path,kieker_commits, other_commits):
+    def test_folder_arg_generates_results_in_subfolder(self, tmp_path, kieker_commits, other_commits):
         folder_name = "somefolder"
         folder_path = tmp_path / folder_name
         folder_path.mkdir()
@@ -504,8 +496,7 @@ class TestResolverCli:
         assert result_path.exists()
         assert len(result_path.read_text(encoding="utf-8")) > 0
 
-
-    def test_folder_arg_generates_lookup_in_subfolder(self,tmp_path,kieker_commits, other_commits):
+    def test_folder_arg_generates_lookup_in_subfolder(self, tmp_path, kieker_commits, other_commits):
         folder_name = "somefolder"
         folder_path = tmp_path / folder_name
         folder_path.mkdir()
@@ -525,7 +516,7 @@ class TestResolverCli:
         assert lookup["by_name"]["andre van hoorn"] == "avanhoorn"
         assert lookup["by_email"]["nie@informatik.uni-kiel.de"] == "nils-christian"
 
-    def test_folder_arg_generates_subfolder_results_from_commits(self,tmp_path,kieker_commits, other_commits):
+    def test_folder_arg_generates_subfolder_results_from_commits(self, tmp_path, kieker_commits, other_commits):
         folder_name = "somefolder"
         folder_path = tmp_path / folder_name
         folder_path.mkdir()
@@ -549,7 +540,7 @@ class TestResolverCli:
 
         assert n.issuperset(test_nodes)
 
-    def test_folder_arg_creates_results_in_subfolders(self,tmp_path,kieker_commits, other_commits):
+    def test_folder_arg_creates_results_in_subfolders(self, tmp_path, kieker_commits, other_commits):
         folder_name = "somefolder"
         repo_folder_prefix = "some_repofolder_"
         folder_path = tmp_path / folder_name
@@ -559,7 +550,7 @@ class TestResolverCli:
             subfolder_path = folder_path / repo_folder_name
             subfolder_path.mkdir()
             commits_path = subfolder_path / "commits.json"
-            commits_path.write_text(json.dumps(kieker_commits , ensure_ascii=False), encoding="utf-8")
+            commits_path.write_text(json.dumps(kieker_commits, ensure_ascii=False), encoding="utf-8")
 
         p, f_path = self._run_folder(tmp_path, folder_name)
 
@@ -569,7 +560,7 @@ class TestResolverCli:
             result_path = subfolder_path / f"{repo_folder_name}.ttl"
             assert result_path.exists()
 
-    def test_folder_arg_processes_commits_in_subfolders(self,tmp_path,kieker_commits, other_commits):
+    def test_folder_arg_processes_commits_in_subfolders(self, tmp_path, kieker_commits, other_commits):
         folder_name = "somefolder"
         repo_folder_prefix = "some_repofolder_"
         folder_path = tmp_path / folder_name
@@ -580,7 +571,7 @@ class TestResolverCli:
             subfolder_path.mkdir()
             commits_path = subfolder_path / "commits.json"
             fixture = kieker_commits if i % 2 == 0 else other_commits
-            commits_path.write_text(json.dumps(fixture , ensure_ascii=False), encoding="utf-8")
+            commits_path.write_text(json.dumps(fixture, ensure_ascii=False), encoding="utf-8")
 
         p, f_path = self._run_folder(tmp_path, folder_name)
 
@@ -607,7 +598,3 @@ class TestResolverCli:
                               rdflib.term.URIRef('https://github.com/gallifrey/tardis_ctrl/commit/e5h53fd8')}
 
             assert n.issuperset(test_nodes)
-
-
-
-

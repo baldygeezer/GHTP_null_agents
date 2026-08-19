@@ -1,18 +1,17 @@
 import json
 import subprocess
 import sys
-
-import pytest
 from pathlib import Path
 
+import pytest
 from rdflib import Graph, URIRef, RDF, PROV
 
-from tests.fixtures import commit, person, user_json, kieker_commits
 from ghtp_null_agents.lookup_builder import LookupBuilder, process_commits
 from ghtp_null_agents.resolve_orphan_commits import resolve_identifier, G2P, DEFAULT_AGENT_BASE
+from tests.fixtures import commit, person, user_json, kieker_commits
 
-ROOT=Path(__file__).resolve().parent.parent
-BUILD=ROOT / "ghtp_null_agents" / "lookup_builder.py"
+ROOT = Path(__file__).resolve().parent.parent
+BUILD = ROOT / "ghtp_null_agents" / "lookup_builder.py"
 RESOLVE = ROOT / "ghtp_null_agents" / "resolve_orphan_commits.py"
 
 
@@ -28,18 +27,19 @@ def test_builder_keys_are_findable_by_resolver(resolved_name, orphan_name):
     """A name harvested by the builder must be resolvable by the resolver
     under any spelling that normalises to the same key."""
     builder = LookupBuilder()
-    builder.add(name=resolved_name, email=None, login = "loginmcloginface", commit_url = "u1", role = "author")
+    builder.add(name=resolved_name, email=None, login="loginmcloginface", commit_url="u1", role="author")
     lookup = {"by_name": builder.by_name, "by_email": builder.by_email}
 
-    assert resolve_identifier(name = orphan_name, email = None, lookup = lookup)[0] == "loginmcloginface"
+    assert resolve_identifier(name=orphan_name, email=None, lookup=lookup)[0] == "loginmcloginface"
 
 
 def test_builder_email_keys_are_findable_by_resolver():
     builder = LookupBuilder()
-    builder.add(name = None, email = "AVH@Informatik.Uni-Kiel.DE", login = "avanhoorn", commit_url = "u1", role = "author")
+    builder.add(name=None, email="AVH@Informatik.Uni-Kiel.DE", login="avanhoorn", commit_url="u1", role="author")
     lookup = {"by_name": builder.by_name, "by_email": builder.by_email}
 
     assert resolve_identifier(None, "avh@informatik.uni-kiel.de", lookup)[0] == "avanhoorn"
+
 
 @pytest.mark.usefixtures("kieker_commits")
 def test_in_process_round_trip_resolves_expected_agents(kieker_commits):
@@ -58,29 +58,30 @@ def test_in_process_round_trip_resolves_expected_agents(kieker_commits):
 class TestFullCliWorkflow:
 
     def _workflow(self, tmp_path, commits):
-        commits_path= tmp_path / "commits.json"
+        commits_path = tmp_path / "commits.json"
         commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
-        lookup_path= tmp_path / "lookup.json"
-        conflicts_path= tmp_path  / "conflicts.json"
+        lookup_path = tmp_path / "lookup.json"
+        conflicts_path = tmp_path / "conflicts.json"
         out_ttl = tmp_path / "orphans.ttl"
 
-
-        build= subprocess.run(
-            [sys.executable, str(BUILD), "--commits", str(commits_path), "--lookup",str(lookup_path), "--conflicts", conflicts_path],
-            capture_output = True, text=True,
+        build = subprocess.run(
+            [sys.executable, str(BUILD), "--commits", str(commits_path), "--lookup", str(lookup_path), "--conflicts",
+             conflicts_path],
+            capture_output=True, text=True,
         )
 
         assert build.returncode == 0, build.stderr
 
-        resolve= subprocess.run(
-            [sys.executable, str(RESOLVE ), "--commits", str(commits_path), "--lookup",str(lookup_path), "--output", str(out_ttl)],
-            capture_output = True, text=True,
+        resolve = subprocess.run(
+            [sys.executable, str(RESOLVE), "--commits", str(commits_path), "--lookup", str(lookup_path), "--output",
+             str(out_ttl)],
+            capture_output=True, text=True,
         )
 
-        assert  resolve.returncode == 0, resolve.stderr
+        assert resolve.returncode == 0, resolve.stderr
 
         g = Graph()
-        g.parse(out_ttl, format = "turtle")
+        g.parse(out_ttl, format="turtle")
 
         return build, resolve, g, tmp_path / "orphans_unresolved.json"
 
@@ -123,17 +124,17 @@ class TestFullCliWorkflow:
         commits_path.write_text(json.dumps(commits, ensure_ascii=False), encoding="utf-8")
 
         lookup_path = tmp_path / "lookup.json"
-        build= subprocess.run(
-            [sys.executable, str(BUILD), "--commits", str(commits_path), "--lookup",str(lookup_path)],
-            capture_output = True, text=True,
+        build = subprocess.run(
+            [sys.executable, str(BUILD), "--commits", str(commits_path), "--lookup", str(lookup_path)],
+            capture_output=True, text=True,
         )
 
         out_ttl = tmp_path / "orphans.ttl"
         proc = subprocess.run(
             [sys.executable, str(RESOLVE),
-                    "--commits", str(commits_path),
-                    "--lookup",str(lookup_path),
-                    "--output", str(out_ttl)],
+             "--commits", str(commits_path),
+             "--lookup", str(lookup_path),
+             "--output", str(out_ttl)],
             capture_output=True, text=True,
         )
         assert proc.returncode == 0, proc.stderr
@@ -172,9 +173,9 @@ class TestFullCliWorkflow:
         out_ttl = tmp_path / "orphans.ttl"
         proc = subprocess.run(
             [sys.executable, str(RESOLVE),
-                    "--commits", str(commits_path),
-                    "--lookup",str(lookup_path),
-                    "--output", str(out_ttl)],
+             "--commits", str(commits_path),
+             "--lookup", str(lookup_path),
+             "--output", str(out_ttl)],
             capture_output=True, text=True,
         )
         assert proc.returncode == 0, proc.stderr
@@ -203,10 +204,10 @@ class TestFullCliWorkflow:
         lookup_path.write_text(json.dumps({"by_name": {}, "by_email": {}}), encoding="utf-8")
         subprocess.run(
             [sys.executable, str(RESOLVE),
-                    "--commits", str(commits_path),
-                    "--lookup", str(lookup_path),
-                    "--output", str(out_ttl)],
-                    capture_output=True, text=True, check=True)
+             "--commits", str(commits_path),
+             "--lookup", str(lookup_path),
+             "--output", str(out_ttl)],
+            capture_output=True, text=True, check=True)
 
         g = Graph()
         g.parse(out_ttl, format="turtle")
@@ -221,7 +222,7 @@ class TestFullCliWorkflow:
                         "--commits", str(commits_path),
                         "--lookup", str(lookup_path),
                         "--output", str(out_ttl)],
-                        capture_output=True, text=True, check=True)
+                       capture_output=True, text=True, check=True)
         g = Graph();
         g.parse(out_ttl, format="turtle")
         assert (URIRef("https://github.com/mystery-login"), RDF.type, PROV.Agent) in g

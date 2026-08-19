@@ -97,3 +97,52 @@ def kieker_commits():
             message="this involved two people, an author and a commiter",
         ),
     ]
+@pytest.fixture
+def other_commits():
+    """
+    another set for sanity
+      -
+    """
+    return [
+        commit(
+            "https://github.com/gallifrey/tardis_ctrl/commit/d4b9a47c01",
+            person("Frodo Bloggs", "f.bloggs@informatik.uni-stuttgart.de", user_json("bloggs")),
+            message="fixed javadoc",
+        ),
+        commit(
+            "https://github.com/gallifrey/tardis_ctrl/commit/e5h53fd8",
+            person("Frödo Bloggs", "fb@informatik.uni-kiel.de", None),
+            message="refactoring",
+        ),
+        commit(
+            "https://github.com/gallifrey/tardis_ctrl/commit/z339h9",
+            person("Ada Lovelace", "ada@informatik.uni-kiel.de", user_json("ada")),
+            message="resolved, one name spelling",
+        ),
+        commit(
+            "https://github.com/gallifrey/tardis_ctrl/commit/786bb5x09",
+            person("Ada e Lovelace", "ada@informatik.uni-kiel.de", None),
+            message="orphan, different name spelling, same email",
+        ),
+        commit(
+            "https://github.com/gallifrey/tardis_ctrl/commit/commit/unknown1",
+            person("Ivan OIdea", "eh@nowhere.de", None),
+            message="unresolvable",
+        ),
+        commit(
+            "https://github.com/gallifrey/tardis_ctrl/commit/65x3t61",
+            author=person("Author McAuthorface", "ama@authorland.de", None),
+            committer=person("Committer McCommitterface", "cmc@committerrland.de", None),
+            message="this involved two people, an author and a commiter",
+        ),
+        commit(
+            "https://github.com/gallifrey/tardis_ctrl/commit/65x3t741",
+            person("Author McAuthorface", "ama1@authorland.de", user_json("authorface")),
+            message="resolve the author on name",
+        ),
+        commit(
+            "https://github.com/gallifrey/tardis_ctrl/commit/6f53t61",
+            person("Committer a McCommitterface", "cmc@committerrland.de", user_json("committerface")),
+            message="resolve committer on email",
+        ),
+    ]

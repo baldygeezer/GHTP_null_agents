@@ -569,5 +569,45 @@ class TestResolverCli:
             result_path = subfolder_path / f"{repo_folder_name}.ttl"
             assert result_path.exists()
 
+    def test_folder_arg_processes_commits_in_subfolders(self,tmp_path,kieker_commits, other_commits):
+        folder_name = "somefolder"
+        repo_folder_prefix = "some_repofolder_"
+        folder_path = tmp_path / folder_name
+        folder_path.mkdir()
+        for i in range(10):
+            repo_folder_name = f"{repo_folder_prefix}{i}"
+            subfolder_path = folder_path / repo_folder_name
+            subfolder_path.mkdir()
+            commits_path = subfolder_path / "commits.json"
+            fixture = kieker_commits if i % 2 == 0 else other_commits
+            commits_path.write_text(json.dumps(fixture , ensure_ascii=False), encoding="utf-8")
+
+        p, f_path = self._run_folder(tmp_path, folder_name)
+
+        for i in range(10):
+            repo_folder_name = f"{repo_folder_prefix}{i}"
+            subfolder_path = folder_path / repo_folder_name
+            result_path = subfolder_path / f"{repo_folder_name}.ttl"
+            result = result_path.read_text(encoding="utf-8")
+            g = Graph()
+            g.parse(data=result, format="ttl")
+            n = g.all_nodes()
+
+            if i % 2 == 0:
+                test_nodes = {rdflib.term.URIRef('https://github.com/kieker-monitoring/kieker/commit/unknown1'),
+                              rdflib.term.URIRef('http://purl.org/github2prov/committer'),
+                              rdflib.term.URIRef('https://github.com/kieker-monitoring/kieker/commit/25853fd8'),
+                              rdflib.term.URIRef('http://purl.org/github2prov/author'),
+                              rdflib.term.URIRef('https://github.com/kieker-monitoring/kieker/commit/78656f09')}
+            else:
+                test_nodes = {rdflib.term.URIRef('https://github.com/gallifrey/tardis_ctrl/commit/e5h53fd8'),
+                              rdflib.term.URIRef('http://purl.org/github2prov/committer'),
+                              rdflib.term.URIRef('https://github.com/gallifrey/tardis_ctrl/commit/65x3t61'),
+                              rdflib.term.URIRef('http://purl.org/github2prov/author'),
+                              rdflib.term.URIRef('https://github.com/gallifrey/tardis_ctrl/commit/e5h53fd8')}
+
+            assert n.issuperset(test_nodes)
+
+
 
 

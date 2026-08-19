@@ -125,7 +125,7 @@ def other_commits():
             message="orphan, different name spelling, same email",
         ),
         commit(
-            "https://github.com/gallifrey/tardis_ctrl/commit/commit/unknown1",
+            "https://github.com/gallifrey/tardis_ctrl/commit/unknown1",
             person("Ivan OIdea", "eh@nowhere.de", None),
             message="unresolvable",
         ),

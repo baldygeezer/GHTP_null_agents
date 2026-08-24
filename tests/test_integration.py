@@ -8,7 +8,7 @@ from rdflib import Graph, URIRef, RDF, PROV
 
 from ghtp_null_agents.lookup_builder import LookupBuilder, process_commits
 from ghtp_null_agents.resolve_orphan_commits import resolve_identifier, G2P, DEFAULT_AGENT_BASE
-from tests.fixtures import commit, person, user_json, kieker_commits
+from tests.fixtures import commit, person, user_json, kieker_commits, other_commits
 
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / "ghtp_null_agents" / "lookup_builder.py"
@@ -56,6 +56,33 @@ def test_in_process_round_trip_resolves_expected_agents(kieker_commits):
 
 
 class TestFullCliWorkflow:
+
+    def _workflow_fldr(self, tmp_path, kieker_commits,other_commits):
+        folder_path = tmp_path / "somefolder"
+        repo_folder_prefix = "some_repofolder"
+
+        lookup_path = "lookup.json"
+        conflicts_path =  "conflicts.json"
+        out_ttl =  "orphans.ttl"
+        paths = []
+        for i in range(10):
+            repo_folder_name = f"{repo_folder_prefix}{i}"
+            subfolder_path = folder_path / repo_folder_name
+            paths.append(subfolder_path)
+            subfolder_path.mkdir()
+            commits_path = subfolder_path / "commits.json"
+            fixture = kieker_commits if i % 2 == 0 else other_commits
+            commits_path.write_text(json.dumps(fixture, ensure_ascii=False), encoding="utf-8")
+
+        resolve= subprocess.run(
+            [sys.executable, str(RESOLVE ), "--folder", str(folder_path)],
+            capture_output = True, text=True,
+        )
+
+        assert  resolve.returncode == 0, resolve.stderr
+        return  resolve,  paths
+
+
 
     def _workflow(self, tmp_path, commits):
         commits_path = tmp_path / "commits.json"

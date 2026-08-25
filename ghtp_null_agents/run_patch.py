@@ -8,3 +8,6 @@ def walk_folder(path:Path):
         folders.extend(sub.iterdir())
     return folders
 
+def get_rdf_paths_and_graphs(path: Path):
+  pass
+

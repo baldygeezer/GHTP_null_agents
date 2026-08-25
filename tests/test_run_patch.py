@@ -22,20 +22,31 @@ def _rdf_content_helper(path: Path, i:int):
     return rdf_path
 
 
+def _folder_helper(path:Path, content:Callable | None = None, i:int |None = None) -> tuple:
+    path.mkdir()
+    folder_path = path
+    content_path =None
+    if content:
+        content_path = content(path, i)
+    return folder_path, content_path
 
-def _folders_helper(path:Path, content:Callable) -> tuple[list[Path], list[Path]] :
-    folder_name = "somefolder"
-    repo_folder_prefix = "some_repofolder_"
-    folder_path = path / folder_name
+def _create_top_folder(test_path:Path, folder_name:str):
+    folder_path = test_path / folder_name
     folder_path.mkdir()
+    return folder_path
+
+
+def _folders_helper(path:Path, content:Callable |None = None) -> tuple[list[Path], list[Path]] :
+    repo_folder_prefix = "some_repofolder_"
+    folder_path = _create_top_folder(path, "somefolder")
     created_folders=[]
     created_files=[]
     for i in range(10):
         repo_folder_name = f"{repo_folder_prefix}{i}"
         subfolder_path = folder_path / repo_folder_name
-        subfolder_path.mkdir()
-        created_folders.append(subfolder_path)
-        created_files.append(content(subfolder_path, i))
+        created_folder , created_file = _folder_helper(subfolder_path, content, i)
+        created_folders.append(created_folder)
+        created_files.append(created_file)
     return created_folders, created_files
 
 
@@ -51,6 +62,9 @@ class TestRunPatch:
 
 
 #get a list of tuples (path to patch, folder_name)
+    # def test_get__path_to_patch(self, folder_path):
+
+
 
 
 # check that a named graph exists

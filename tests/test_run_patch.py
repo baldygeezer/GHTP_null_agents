@@ -3,8 +3,12 @@ from pathlib import Path
 from typing import Callable
 
 import pytest
+from pytest_mock import mocker
+
 from ghtp_null_agents.run_patch import walk_folder, get_path_to_patch, get_graph_name, get_rdf_paths_and_graphs
 
+top_folder = "somefolder"
+repo_folder_prefix = "some_repofolder_"
 
 def _rdf_content_helper(path: Path, i:int|None = None , name:str|None=None):
     rdf_string="""@prefix prov: <http://www.w3.org/ns/prov#> .
@@ -46,14 +50,14 @@ def _create_top_folder(test_path:Path, folder_name:str)->Path:
 
 
 def _folders_helper(path:Path, content:Callable |None = None) -> tuple[list[Path], list[Path]] :
-    repo_folder_prefix = "some_repofolder_"
-    folder_path = _create_top_folder(path, "somefolder")
+    folder_path = _create_top_folder(path, top_folder)
     created_folders=[]
     created_files=[]
     for i in range(10):
         repo_folder_name = f"{repo_folder_prefix}{i}"
         subfolder_path = folder_path / repo_folder_name
-        created_folder , created_file = _folder_helper(subfolder_path, content, i)
+        content_filename = f"{repo_folder_name}.ttl"
+        created_folder , created_file = _folder_helper(subfolder_path, content, i, content_filename)
         created_folders.append(created_folder)
         created_files.append(created_file)
     return created_folders, created_files
@@ -69,7 +73,7 @@ class TestRunPatch:
 
 #get a list of tuples (path to patch, folder_name)
     def test_get_path_to_patch(self, tmp_path):
-        folder =_create_top_folder(test_path=tmp_path,folder_name="somefolder")
+        folder =_create_top_folder(test_path=tmp_path,folder_name=top_folder)
         subfolder0, content_path =_folder_helper(path = folder / "sub_folder",
                                                  content = _rdf_content_helper,
                                                  content_filename = "sub_folder.ttl")
@@ -135,13 +139,39 @@ class TestRunPatch:
 
 
     def test_get_rdf_paths_and_graphs_returns_list(self, tmp_path):
-        r_val=get_rdf_paths_and_graphs(path=tmp_path)
+        _folders_helper(path=tmp_path, content=_rdf_content_helper)
+        r_val=get_rdf_paths_and_graphs(path=tmp_path / top_folder)
         assert isinstance(r_val, list)
 
+    def test_get_rdf_paths_and_graphs_returns_non_empty_list(self, tmp_path):
+        _folders_helper(path=tmp_path, content=_rdf_content_helper)
+        r_val=get_rdf_paths_and_graphs(path=tmp_path / top_folder)
+        assert len(r_val) == 10
+
     def test_get_rdf_paths_and_graphs_returns_list_of_tuple(self, tmp_path):
-        r_val=get_rdf_paths_and_graphs(path=tmp_path)
+        _folders_helper(path=tmp_path, content=_rdf_content_helper)
+        r_val=get_rdf_paths_and_graphs(path=tmp_path / top_folder)
         for item in r_val:
             assert isinstance(item, tuple)
+
+    def test_get_rdf_paths_and_graphs_tuples_have_len_2(self, tmp_path):
+        _folders_helper(path=tmp_path, content=_rdf_content_helper)
+        r_val=get_rdf_paths_and_graphs(path=tmp_path / top_folder)
+        for tup in r_val:
+            assert len(tup) == 2
+
+    def test_get_rdf_paths_and_graphs_tuples_contain_str(self, tmp_path):
+        _folders_helper(path=tmp_path, content=_rdf_content_helper)
+        r_val=get_rdf_paths_and_graphs(path=tmp_path / top_folder)
+        for tup in r_val:
+            assert isinstance(tup[1], str)
+
+    def test_get_rdf_paths_and_graphs_calls_get_path_to_patch(self, tmp_path):
+        _folders_helper(path=tmp_path, content=_rdf_content_helper)
+        mock_get_path_to_patch=mocker.patch("ghtp_null_agents.run_patch.get_path_to_patch")
+        r_val=get_rdf_paths_and_graphs(path=tmp_path / top_folder)
+        mock_get_path_to_patch.assert_called_once()
+
 
 # check that a named graph exists in the triplestore
 

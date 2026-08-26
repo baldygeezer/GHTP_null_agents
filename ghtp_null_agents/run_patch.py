@@ -24,5 +24,5 @@ def get_graph_name(folder_path:Path)->str:
     return folder_path.name
 
 def get_rdf_paths_and_graphs(path: Path)->list[tuple[Path, str]]:
-    return []
+    return [(folder, folder.name) for folder in Path(path).iterdir()]
 

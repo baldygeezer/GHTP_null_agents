@@ -166,11 +166,20 @@ class TestRunPatch:
         for tup in r_val:
             assert isinstance(tup[1], str)
 
-    def test_get_rdf_paths_and_graphs_calls_get_path_to_patch(self, tmp_path):
+    def test_get_rdf_paths_and_graphs_calls_get_path_to_patch(self, tmp_path,mocker ):
         _folders_helper(path=tmp_path, content=_rdf_content_helper)
         mock_get_path_to_patch=mocker.patch("ghtp_null_agents.run_patch.get_path_to_patch")
         r_val=get_rdf_paths_and_graphs(path=tmp_path / top_folder)
-        mock_get_path_to_patch.assert_called_once()
+        mock_get_path_to_patch.assert_called()
+        assert mock_get_path_to_patch.call_count == 10
+
+    def test_get_rdf_paths_and_graphs_calls_get_graph_name(self, tmp_path,mocker ):
+        _folders_helper(path=tmp_path, content=_rdf_content_helper)
+        mock_get_graph_name=mocker.patch("ghtp_null_agents.run_patch.get_graph_name")
+        r_val=get_rdf_paths_and_graphs(path=tmp_path / top_folder)
+        mock_get_graph_name.assert_called()
+        assert mock_get_graph_name.call_count == 10
+
 
 
 # check that a named graph exists in the triplestore

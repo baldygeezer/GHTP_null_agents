@@ -8,7 +8,7 @@ from rdflib import Graph, URIRef, RDF, PROV
 
 from ghtp_null_agents.lookup_builder import LookupBuilder, process_commits
 from ghtp_null_agents.resolve_orphan_commits import resolve_identifier, G2P, DEFAULT_AGENT_BASE
-from run_patch import get_rdf_paths_and_graphs
+from ghtp_null_agents.run_patch import get_rdf_paths_and_graphs
 from tests.fixtures import commit, person, user_json, kieker_commits, other_commits
 
 ROOT = Path(__file__).resolve().parent.parent

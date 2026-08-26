@@ -67,9 +67,48 @@ class TestRunPatch:
 # walk a folder for a list of subfolders
     def test_walk_folder(self, tmp_path):
         expected_folders, _ = _folders_helper(tmp_path, _rdf_content_helper)
-        folders = walk_folder(tmp_path)
+        folders = walk_folder(tmp_path / top_folder)
         assert len(folders) == len(expected_folders)
         assert set(folders) == set(expected_folders)
+
+    def test_walk_folder_looks_1_level(self, tmp_path):
+        folder1 = _create_top_folder(test_path=tmp_path, folder_name=top_folder)
+        folder2 = folder1 / "folder2"
+        folder2.mkdir()
+        folder2_1 = folder2 / "folder2_1"
+        folder2_1.mkdir()
+        folder2_2 = folder2 / "folder2_2"
+        folder2_2.mkdir()
+        folder3 = folder1 / "folder3"
+        folder3.mkdir()
+        folder3_1 = folder3 / "folder3_1"
+        folder3_1.mkdir()
+        folder3_2 = folder3 / "folder3_2"
+        folder3_2.mkdir()
+        folder4 = folder1 / "folder4"
+        folder4.mkdir()
+
+        expected_folders = [folder2, folder3, folder4]
+        folders = walk_folder(tmp_path / top_folder)
+        assert len(folders) ==3
+        assert set(folders) == set(expected_folders)
+
+    def test_walk_folder_returns_only_dirs(self, tmp_path):
+        folder1 = _create_top_folder(test_path=tmp_path, folder_name=top_folder)
+        folder2 = folder1 / "folder2"
+        folder2.mkdir()
+        text_file = folder1 / "war_and_peace.txt"
+        text_file.write_text("hello world")
+        folder3 = folder1 / "folder3"
+        folder3.mkdir()
+        more_text = folder1 / "why_I do_so_love_comic_sans.doc"
+        more_text.write_text("hello world")
+        expected_folders = [folder2, folder3 ]
+        folders = walk_folder(tmp_path / top_folder)
+        assert len(folders) ==2
+        assert set(folders) == set(expected_folders)
+        for folder in folders:
+            assert folder.is_dir()
 
 #get a list of tuples (path to patch, folder_name)
     def test_get_path_to_patch(self, tmp_path):
@@ -179,6 +218,12 @@ class TestRunPatch:
         r_val=get_rdf_paths_and_graphs(path=tmp_path / top_folder)
         mock_get_graph_name.assert_called()
         assert mock_get_graph_name.call_count == 10
+
+    def test_get_rdf_paths_and_graphs_calls_walk_folders(self, tmp_path,mocker ):
+        _folders_helper(path=tmp_path, content=_rdf_content_helper)
+        mock_walk_folder=mocker.patch("ghtp_null_agents.run_patch.walk_folder")
+        r_val=get_rdf_paths_and_graphs(path=tmp_path / top_folder)
+        mock_walk_folder.assert_called_once()
 
 
 

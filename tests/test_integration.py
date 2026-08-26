@@ -8,6 +8,7 @@ from rdflib import Graph, URIRef, RDF, PROV
 
 from ghtp_null_agents.lookup_builder import LookupBuilder, process_commits
 from ghtp_null_agents.resolve_orphan_commits import resolve_identifier, G2P, DEFAULT_AGENT_BASE
+from run_patch import get_rdf_paths_and_graphs
 from tests.fixtures import commit, person, user_json, kieker_commits, other_commits
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -271,3 +272,47 @@ class TestFullCliWorkflow:
         # resolved to an account.
         assert (URIRef(DEFAULT_AGENT_BASE + "someone"), RDF.type, PROV.Agent) in g
         assert json.loads(unresolved_path.read_text(encoding="utf-8")) == []
+
+
+
+class TestRunPatch:
+
+    def _workflow_fldr(self, tmp_path, kieker_commits,other_commits):
+        folder_path = tmp_path / "somefolder"
+        repo_folder_prefix = "some_repofolder"
+        folder_path.mkdir()
+
+        lookup_path = "lookup.json"
+        conflicts_path =  "conflicts.json"
+        out_ttl =  "orphans.ttl"
+        paths = []
+        for i in range(10):
+            repo_folder_name = f"{repo_folder_prefix}{i}"
+            subfolder_path = folder_path / repo_folder_name
+            paths.append(subfolder_path)
+            subfolder_path.mkdir()
+            commits_path = subfolder_path / "commits.json"
+            fixture = kieker_commits if i % 2 == 0 else other_commits
+            commits_path.write_text(json.dumps(fixture, ensure_ascii=False), encoding="utf-8")
+
+        resolve= subprocess.run(
+            [sys.executable, str(RESOLVE ), "--folder", str(folder_path)],
+            capture_output = True, text=True,
+        )
+
+        assert  resolve.returncode == 0, resolve.stderr
+        return  resolve,  paths
+
+    def test_graphs_and_paths(self, tmp_path, kieker_commits, other_commits):
+        top_folder = tmp_path / "somefolder"
+        r,p = self._workflow_fldr(tmp_path, kieker_commits,other_commits)
+        graphs_and_paths=get_rdf_paths_and_graphs(top_folder)
+        test_graphs=[f'some_repofolder{i}' for i in range(10)]
+        test_paths=[f'{str(tmp_path)}/somefolder/some_repofolder{i}/some_repofolder{i}.ttl' for i in range(10)]
+        for tup in graphs_and_paths:
+            assert isinstance(tup[0],Path)
+            assert str(tup[0]) in test_paths
+            assert tup[1] in test_graphs
+
+
+

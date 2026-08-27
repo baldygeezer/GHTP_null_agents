@@ -236,7 +236,22 @@ class TestRunPatch:
         request_mock.assert_called_once()
 
 
+    @pytest.mark.parametrize("i",range(5))
+    def test_import_patch_calls_requests_put_with_args(self, i, mocker):
+        headers = {"Content-Type": "text/turtle"}
+        data = f"{str(i)}wibble".encode()
+        patch_folder = Path() / f"patch_folder{i}"
+        patch_graph = f"patch_folder{i}"
+        request_mock = mocker.patch("requests.put")
+        ttl_mock = mocker.patch("ghtp_null_agents.run_patch.read_turtle",return_value=data)
+        import_patch(patch_folder, patch_graph)
+        request_mock.assert_called_with(headers=headers,
+                                            params={"context": f"<http://soton.ac.uk/pars/graphs/{patch_graph}>"},
+                                            data=data,
+                                            timeout=120,
+                                            )
 
+        ttl_mock.assert_called_once_with(patch_folder / f"{patch_graph}.ttl")
 
 # check that a named graph exists in the triplestore
 

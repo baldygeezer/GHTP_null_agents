@@ -1,3 +1,5 @@
+import math
+import random
 from os import PathLike
 from pathlib import Path
 from typing import Callable
@@ -5,7 +7,8 @@ from typing import Callable
 import pytest
 from pytest_mock import mocker
 
-from ghtp_null_agents.run_patch import walk_folder, get_path_to_patch, get_graph_name, get_rdf_paths_and_graphs
+from ghtp_null_agents.run_patch import walk_folder, get_path_to_patch, get_graph_name, get_rdf_paths_and_graphs, \
+    import_patch
 
 top_folder = "somefolder"
 repo_folder_prefix = "some_repofolder_"
@@ -224,6 +227,14 @@ class TestRunPatch:
         mock_walk_folder=mocker.patch("ghtp_null_agents.run_patch.walk_folder")
         r_val=get_rdf_paths_and_graphs(path=tmp_path / top_folder)
         mock_walk_folder.assert_called_once()
+
+    def test_import_patch_calls_requests_put(self, tmp_path, mocker):
+        patch_folder = Path(tmp_path / "patch_folder")
+        patch_graph = "patch_folder"
+        request_mock = mocker.patch("requests.put")
+        import_patch(patch_folder, patch_graph)
+        request_mock.assert_called_once()
+
 
 
 

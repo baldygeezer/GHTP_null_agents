@@ -1,12 +1,11 @@
 from os import PathLike
 from pathlib import Path
 
+import requests
+
 
 def walk_folder(path:Path):
-    folders = []
-    for sub in Path(path).iterdir():
-        folders.extend(sub.iterdir())
-    return folders
+    return [entry for entry in Path(path).iterdir() if entry.is_dir()]
 
 def get_path_to_patch(folder:Path):
     folder = Path(folder)
@@ -24,9 +23,14 @@ def get_graph_name(folder_path:Path)->str:
 
 def get_rdf_paths_and_graphs(path: Path)->list[tuple[Path, str]]:
     result = []
-    for folder in Path(path).iterdir():
+    for folder in walk_folder(path):
         patch_path = get_path_to_patch(folder)
         graph_name = get_graph_name(folder)
         result.append((patch_path, graph_name))
     return result
 
+def read_turtle(path:Path)->bytes:
+    pass
+
+def import_patch(patch_path:Path, graph_name:str):
+    requests.put(str(patch_path), params={"graph": graph_name})

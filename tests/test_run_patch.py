@@ -8,21 +8,22 @@ import pytest
 from pytest_mock import mocker
 
 from ghtp_null_agents.run_patch import walk_folder, get_path_to_patch, get_graph_name, get_rdf_paths_and_graphs, \
-    import_patch
+    import_patch, read_turtle
 
 top_folder = "somefolder"
 repo_folder_prefix = "some_repofolder_"
 
 def _rdf_content_helper(path: Path, i:int|None = None , name:str|None=None):
-    rdf_string="""@prefix prov: <http://www.w3.org/ns/prov#> .
+    insert=str(i) if i else ''
+    rdf_string=f"""@prefix prov: <http://www.w3.org/ns/prov#> .
             @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-            <https://github.com/test_repo/test/commit/00060e> 
-            prov:qualifiedAssociation [ prov:agent <https://github.com/alice> ;
+            <https://github.com/test_repo/test/commit/{i}00060e> 
+            prov:qualifiedAssociation [ prov:agent <https://github.com/alice{i}> ;
                 prov:hadRole <http://purl.org/github2prov/committer> ],
-                [ prov:agent <https://github.com/alice> ;
+                [ prov:agent <https://github.com/alice{i}> ;
                 prov:hadRole <http://purl.org/github2prov/author> ] ;
-                prov:wasAssociatedWith <https://github.com/alice> .
+                prov:wasAssociatedWith <https://github.com/alice{i}> .
                   <https://github.com/alice> a prov:Agent .
                   """
     file_name = name if name else "test_repo.ttl"
@@ -34,6 +35,20 @@ def _rdf_content_helper(path: Path, i:int|None = None , name:str|None=None):
     assert contents.strip() == rdf_string.strip()
     return rdf_path
 
+def _text_content_helper(path: Path , name:str|None=None, contents:str|None=None):
+    if contents:
+        result_string = contents
+    else:
+        result_string = "jim_jam->jelly, wibelly-wobbelly woooh"
+
+    file_name = name if name else "test_repo.ttl"
+
+    result_path = path / file_name
+    result_path.write_text(result_string, encoding="utf-8")
+    assert result_path.is_file()
+    contents = result_path.read_text(encoding="utf-8")
+    assert contents.strip() == result_string.strip()
+    return result_path
 
 def _folder_helper(path:Path,
                    content:Callable | None = None,
@@ -229,29 +244,99 @@ class TestRunPatch:
         mock_walk_folder.assert_called_once()
 
     def test_import_patch_calls_requests_put(self, tmp_path, mocker):
+        repo = "repo"
+        endpoint = "http://localhost:4378"
         patch_folder = Path(tmp_path / "patch_folder")
         patch_graph = "patch_folder"
+        ttl_mock = mocker.patch("ghtp_null_agents.run_patch.read_turtle")
         request_mock = mocker.patch("requests.put")
-        import_patch(patch_folder, patch_graph)
+        import_patch(patch_folder, patch_graph,endpoint, repo)
         request_mock.assert_called_once()
 
 
-    @pytest.mark.parametrize("i",range(5))
-    def test_import_patch_calls_requests_put_with_args(self, i, mocker):
+    @pytest.mark.parametrize("i, endpoint",[
+        (1,"http://localhost:7203"),
+        (25,"http://localhost:4378"),
+        ("cheese","https://jerrythemouse:3478"),
+        (1365,"http://wibble:7048")
+    ])
+    def test_import_patch_calls_requests_put_with_args(self, i,endpoint, mocker):
+        repo = "repo"
         headers = {"Content-Type": "text/turtle"}
         data = f"{str(i)}wibble".encode()
         patch_folder = Path() / f"patch_folder{i}"
         patch_graph = f"patch_folder{i}"
         request_mock = mocker.patch("requests.put")
         ttl_mock = mocker.patch("ghtp_null_agents.run_patch.read_turtle",return_value=data)
-        import_patch(patch_folder, patch_graph)
-        request_mock.assert_called_with(headers=headers,
-                                            params={"context": f"<http://soton.ac.uk/pars/graphs/{patch_graph}>"},
-                                            data=data,
-                                            timeout=120,
+        import_patch(patch_folder, patch_graph, endpoint, repo, )
+        request_mock.assert_called_with(url=f"{endpoint}/repositories/{repo}/statements",
+                                        headers=headers,
+                                        params={"context": f"<http://soton.ac.uk/pars/graphs/{patch_graph}>"},
+                                        data=data,
+                                        timeout=120,
                                             )
 
         ttl_mock.assert_called_once_with(patch_folder / f"{patch_graph}.ttl")
+
+    @pytest.mark.parametrize("i",range(5))
+    def test_read_turtle_returns_data_from_path(self, tmp_path,i):
+        folder = _create_top_folder(test_path=tmp_path, folder_name="somefolder")
+        subfolder, content_path = _folder_helper(path=folder / f"wibble_wibble{i}",
+                                                  content=_rdf_content_helper,
+                                                  content_filename=f"wibble_wibble{i}.ttl",
+                                                  i=i)
+        expected_ttl=content_path.read_text().encode()
+        ttl = read_turtle(content_path)
+        assert ttl == expected_ttl
+        assert isinstance(ttl, bytes)
+
+    def test_read_turtle_errors_on_bad_ttl(self, tmp_path, mocker):
+        data="jim_jam->jelly, wibelly-wobbelly woooh"
+        folder = Path(tmp_path / "patch_folder")
+        folder.mkdir()
+        content_path = _text_content_helper(contents=data,path=folder)
+        with pytest.raises(ValueError) as e:
+            read_turtle(content_path)
+
+        assert str(e.value)==f"Bad Turtle syntax: could not read the file at {content_path}"
+
+    def test_read_turtle_uses_rdflib(self, tmp_path, mocker):
+        data=f"""@prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    <https://github.com/test_repo/test/commit/00060e>
+        prov:wasAssociatedWith <https://github.com/alice> .
+        <https://github.com/alice> a prov:Agent ."""
+        folder = Path(tmp_path / "patch_folder")
+        folder.mkdir()
+        content_path = _text_content_helper(contents=data, path=folder)
+
+        graph_mock = mocker.patch("ghtp_null_agents.run_patch.Graph")
+        ttl1 = read_turtle(content_path)
+        graph_mock.assert_called_once_with()
+        graph_mock.return_value.parse.assert_called_once_with(content_path)
+
+
+    def test_read_turtle_errors_if_not_prov(self, tmp_path, mocker):
+        data = f"""@prefix gubbins: <http://www.w3.org/ns/gubbins#> .
+                    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+                    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+                    <https://github.com/test_repo/test/commit/00060e>
+                        gubbins:wasAssociatedWith <https://github.com/alice> ;
+                        gubbins:message "we love prov"^^xsd:string.
+                    <https://github.com/alice> a gubbins:Agent ."""
+        folder = Path(tmp_path / "patch_folder")
+        folder.mkdir()
+        content_path = _text_content_helper(contents=data, path=folder)
+
+        with pytest.raises(ValueError) as e:
+            read_turtle(content_path)
+        assert str(e.value)==f"The turtle file at {content_path} does not appear to contain prov data"
+
+
+
+
+
+
 
 # check that a named graph exists in the triplestore
 
@@ -259,9 +344,9 @@ class TestRunPatch:
 
 # skip if a named graph does not exist
 
-# check for valid rdf
 
-# log invalid rdf
+
+
 
 # skip invalid rdf
 

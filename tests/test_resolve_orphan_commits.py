@@ -44,20 +44,24 @@ class TestResolveAgentUri:
 class TestResolveIdentifier:
     def test_matches_on_name(self):
         lookup = empty_lookup(by_name={"andre van hoorn": "avanhoorn"})
-        assert resolve_identifier(name="André van Hoorn", email=None, lookup=lookup) == ("avanhoorn", "lookup-name")
+        identity_map = {"by_id": {}, "by_email": {}}
+        assert resolve_identifier(name="André van Hoorn", email=None, lookup=lookup,identity_map=identity_map) == ("avanhoorn", "lookup-name")
 
     def test_falls_back_to_email(self):
         lookup = empty_lookup(by_email={"nie@informatik.uni-kiel.de": "nils-christian"})
-        assert resolve_identifier("Nils Christian Ehmke", "nie@informatik.uni-kiel.de", lookup) == ("nils-christian",
+        identity_map = {"by_id": {}, "by_email": {}}
+        assert resolve_identifier(name="Nils Christian Ehmke", email="nie@informatik.uni-kiel.de", lookup=lookup,identity_map=identity_map) == ("nils-christian",
                                                                                                     "lookup-email")
 
     def test_name_takes_priority_over_email(self):
         lookup = empty_lookup(by_name={"real person": "name-login"},
                               by_email={"shared@x.de": "email-login"})
-        assert resolve_identifier("Real Person", "shared@x.de", lookup)[0] == "name-login"
+        identity_map = {"by_id": {}, "by_email": {}}
+        assert resolve_identifier("Real Person", "shared@x.de", lookup,identity_map)[0] == "name-login"
 
     def test_returns_none_when_both_miss(self):
-        assert resolve_identifier("Nobody", "n@x.de", empty_lookup()) == (None, None)
+        identity_map = {"by_id": {}, "by_email": {}}
+        assert resolve_identifier("Nobody", "n@x.de", empty_lookup(),identity_map) == (None, None)
 
 
 class TestMintRegistry:
@@ -137,22 +141,27 @@ class TestMintRegistry:
 
 
 class TestProcessSlot:
-    def _run(self, name="Nina Marwede", email="nina@x.de", lookup=None, role="author",
-             registry=None, base=BASE):
+    def _run(self, name="Nina Marwede", email="nina@x.de", lookup=None, role= "author",
+             registry=None, base= BASE):
         g = Graph()
         unresolved = []
         stats = __import__("collections").defaultdict(int)
         registry = registry or MintRegistry(base)
+        identity_map = {"by_id": {}, "by_email": {}}
+
         method = process_slot(
             graph=g, commit_url="https://github.com/o/r/commit/abc",
             person=person(name, email, None), role=role,
             lookup=lookup if lookup is not None else empty_lookup(),
+            indentity_map=identity_map,
             registry=registry, unresolved=unresolved, stats=stats,
         )
         return g, unresolved, method, registry
 
     def test_lookup_hit_uses_github_uri(self):
         lookup = empty_lookup(by_name={"nina marwede": "ninalogin"})
+        identity_map = {"by_id": {}, "by_email": {}}
+
         g, _, method, _ = self._run(lookup=lookup)
         assert method == "lookup-name"
         assert (URIRef("https://github.com/ninalogin"), RDF.type, PROV.Agent) in g
@@ -284,9 +293,10 @@ class TestWebUiSlot:
         unresolved = []
         stats = __import__("collections").defaultdict(int)
         registry = MintRegistry(BASE)
+        identity_map = {"by_id": {}, "by_email": {}}
         method = process_slot(g, "https://github.com/o/r/commit/abc",
                               person(name, email, None), role,
-                              empty_lookup(), registry, unresolved, stats)
+                              empty_lookup(),identity_map, registry, unresolved, stats)
         return g, method
 
     def test_detects_web_ui(self):

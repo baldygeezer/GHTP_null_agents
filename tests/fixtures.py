@@ -146,3 +146,48 @@ def other_commits():
             message="resolve committer on email",
         ),
     ]
+
+
+@pytest.fixture
+def rdf_valid_prov():
+    for i in range(5):
+        yield f"""@prefix prov: <http://www.w3.org/ns/prov#> .
+            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+            <https://github.com/test_repo/test/commit/{i}00060e> 
+            prov:qualifiedAssociation [ prov:agent <https://github.com/alice{i}> ;
+                prov:hadRole <http://purl.org/github2prov/committer> ],
+                [ prov:agent <https://github.com/alice{i}> ;
+                prov:hadRole <http://purl.org/github2prov/author> ] ;
+                prov:wasAssociatedWith <https://github.com/alice{i}> .
+                  <https://github.com/alice> a prov:Agent .
+                  """, i
+
+
+@pytest.fixture
+def rdf_valid_no_prov():
+    data = [
+        f"""@prefix gubbins: <http://www.w3.org/ns/gubbins#> .
+                        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+                        @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+                        <https://github.com/test_repo/test/commit/00060e>
+                            gubbins:wasAssociatedWith <https://github.com/alice> ;
+                            gubbins:message "we love prov"^^xsd:string.
+                        <https://github.com/alice> a gubbins:Agent .""",
+        """@prefix ex: <http://example.org/> .
+            ex:subject ex:predicate ex:object .
+        """
+    ]
+
+
+@pytest.fixture
+def rdf_bad_syntax(tmp_path):
+    data = ["jim_jam->jelly, wibelly-wobbelly woooh",
+            f"""@prefix gubbins: <http://www.w3.org/ns/gubbins#> .
+              @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+                    <https://github.com/test_repo/test/commit/00060e>
+                    gubbins:wasAssociatedWith <https://github.com/alice> ;
+                    gubbins:message "we love prov"^^xsd:string.
+                    <https://github.com/alice> a gubbins:Agent ."""]
+    for text in data:
+        yield text

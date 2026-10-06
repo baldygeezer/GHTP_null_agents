@@ -22,6 +22,14 @@ WEB_UI_LABEL = "GitHub (web UI)"
 
 OUTPUT_PATH=Path('data') / "orphans.ttl"
 
+NOREPLY_ID_RE = re.compile(r"^(\d+)\+.+@users\.noreply\.github\.com$", re.IGNORECASE)
+IDENTITY_MAP_PATH = Path("data") / "identity_map.json"   # module level
+
+def noreply_account_id(email):
+    m = NOREPLY_ID_RE.match((email or "").strip())
+    return m.group(1) if m else None
+
+
 def resolve_agent_uri(identifier):
     # if it's already a complete uri (has a scheme) leave it alone
     if SCHEME_RE.match(identifier):
@@ -33,7 +41,17 @@ def resolve_agent_uri(identifier):
     return URIRef(f"https://github.com/{identifier}")
 
 
-def resolve_identifier(name, email, lookup):
+def resolve_identifier(name, email, lookup, identity_map):
+    # if we can get a corpus-wide github id resolution from numeric in no reply than that is canonical
+    acct_id = noreply_account_id(email)
+    if acct_id and acct_id in identity_map["by_id"]:
+        return identity_map["by_id"][acct_id], "cross-repo-id"
+    # otherwise use email from corpus
+    email_key = normalise_email(email)
+    if email_key and email_key in identity_map["by_email"]:
+        return identity_map["by_email"][email_key], "cross-repo-email"
+
+    # resolve within repo
     if name:
         name_key = normalise_name(name)
         if name_key in lookup["by_name"]:
@@ -110,7 +128,7 @@ class MintRegistry:
 
 
 def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
-                 lookup: dict, registry: MintRegistry, unresolved: list, stats: dict):
+                 lookup: dict,indentity_map: dict, registry: MintRegistry, unresolved: list, stats: dict):
     if not person.get("name") and not person.get("email"):
         unresolved.append({
             "name": person.get("name"),
@@ -136,7 +154,7 @@ def process_slot(graph: Graph, commit_url: str, person: dict, role: str,
 
         return "web-ui"
 
-    login, method = resolve_identifier(person.get("name"), person.get("email"), lookup)
+    login, method = resolve_identifier(person.get("name"), person.get("email"), lookup, indentity_map)
     # this is the lookup hit branch - we found a github login - whoopeee!
     if login:
         uri = resolve_agent_uri(login)
@@ -229,6 +247,10 @@ def process_repo(commits_path: Path, lookup_path: Path, output_path: Path):
     else:
         lookup = json.loads(lookup_path.read_text(encoding="utf-8"))
 
+    identity_map = (json.loads(IDENTITY_MAP_PATH.read_text(encoding="utf-8"))
+                  if IDENTITY_MAP_PATH.exists()
+                  else {"by_id": {}, "by_email": {}})
+
     graph = Graph()
     registry = MintRegistry(DEFAULT_AGENT_BASE)
     unresolved = []
@@ -238,7 +260,7 @@ def process_repo(commits_path: Path, lookup_path: Path, output_path: Path):
         for role in ("author", "committer"):
             slot = c["commit"][role]
             if slot.get("user") is None:
-                process_slot(graph, c["url"], slot, role, lookup, registry, unresolved, stats)
+                process_slot(graph, c["url"], slot, role, lookup,identity_map, registry, unresolved, stats)
 
     output_path.write_text(graph.serialize(format="turtle"))
 
@@ -274,15 +296,6 @@ def main():
             process_repo(commits_path, lookup_path, output_path)
     else:
         process_repo(get_commits_path(ns), get_lookup_path(ns), get_output_path(ns))
-
-
-
-
-
-
-
-
-
 
 
 
